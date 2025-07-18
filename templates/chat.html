@@ -5,10 +5,11 @@
     <title>Chat | {{ username }}</title>
     <style>
         :root {
-            --header-color: #2c3e50; /* Dark blue header */
-            --primary: #3498db; /* Blue accent */
+            --header-color: #2c3e50;
+            --primary: #3498db;
             --secondary: #007bff;
             --danger: #e74c3c;
+            --success: #2ecc71;
             --text: #333;
             --light: #f5f5f5;
             --white: #ffffff;
@@ -125,6 +126,18 @@
             display: none;
         }
         
+        #switchCameraBtn {
+            background: var(--gray);
+            color: var(--white);
+            display: none;
+        }
+        
+        #capturePhotoBtn {
+            background: var(--success);
+            color: var(--white);
+            display: none;
+        }
+        
         .chat-area {
             flex: 1;
             display: flex;
@@ -177,6 +190,13 @@
             font-size: 14px;
         }
         
+        .image-message {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        
         .input-area {
             display: flex;
             padding: 8px;
@@ -209,6 +229,27 @@
             font-size: 14px;
             min-width: 60px;
             height: 40px;
+        }
+        
+        #photoInput {
+            display: none;
+        }
+        
+        .photo-btn {
+            background: var(--primary);
+            color: var(--white);
+            margin-right: 8px;
+            padding: 0 12px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .user-display {
@@ -248,6 +289,11 @@
             .msg-text {
                 font-size: 13px;
             }
+            
+            .image-message {
+                max-width: 150px;
+                max-height: 150px;
+            }
         }
     </style>
 </head>
@@ -272,6 +318,8 @@
         <div class="video-controls">
             <button id="startCallBtn">Start</button>
             <button id="endCallBtn">End</button>
+            <button id="switchCameraBtn">Switch</button>
+            <button id="capturePhotoBtn">Photo</button>
         </div>
     </div>
 
@@ -282,6 +330,8 @@
     </div>
 
     <div class="input-area">
+        <input type="file" id="photoInput" accept="image/*" capture="environment">
+        <button class="photo-btn" id="photoBtn">📷</button>
         <input type="text" id="messageInput" placeholder="Type a message..." autocapitalize="sentences">
         <button id="sendBtn">Send</button>
     </div>
@@ -289,14 +339,22 @@
     <script>
         const username = "{{ username }}";
         let localStream;
+        let currentFacingMode = "user"; // front camera by default
+        let photoCanvas = document.createElement('canvas');
+        let photoContext = photoCanvas.getContext('2d');
         
         // DOM Elements
         const localVideo = document.getElementById('localVideo');
         const remoteVideo = document.getElementById('remoteVideo');
         const startCallBtn = document.getElementById('startCallBtn');
         const endCallBtn = document.getElementById('endCallBtn');
+        const switchCameraBtn = document.getElementById('switchCameraBtn');
+        const capturePhotoBtn = document.getElementById('capturePhotoBtn');
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const photoBtn = document.getElementById('photoBtn');
+        const photoInput = document.getElementById('photoInput');
         
         // Disable zooming
         document.addEventListener('gesturestart', function(e) {
@@ -327,14 +385,19 @@
                         const msgDiv = document.createElement('div');
                         msgDiv.className = isSent ? 'message sent' : 'message received';
                         
-                        msgDiv.innerHTML = `
+                        let content = `
                             <div class="msg-header">
                                 <strong>${msg.sender}</strong>
                                 <span>${msg.time}</span>
-                            </div>
-                            <div class="msg-text">${msg.text}</div>
-                        `;
+                            </div>`;
                         
+                        if (msg.type === 'image') {
+                            content += `<img src="${msg.content}" class="image-message" alt="Sent photo">`;
+                        } else {
+                            content += `<div class="msg-text">${msg.text}</div>`;
+                        }
+                        
+                        msgDiv.innerHTML = content;
                         chatContainer.appendChild(msgDiv);
                     });
                     
@@ -356,7 +419,10 @@
             fetch("/send", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({ 
+                    message: message,
+                    type: 'text'
+                })
             })
             .then(response => {
                 if (!response.ok) throw new Error('Failed to send');
@@ -375,20 +441,87 @@
             }
         }
         
+        function sendPhoto(imageData) {
+            fetch("/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    content: imageData,
+                    type: 'image'
+                })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to send photo');
+                loadMessages();
+            })
+            .catch(error => {
+                console.error("Error sending photo:", error);
+            });
+        }
+        
         // Video Call Functions
         async function startVideoCall() {
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: 160, height: 120 }, 
+                const constraints = {
+                    video: { 
+                        width: 160, 
+                        height: 120,
+                        facingMode: currentFacingMode
+                    }, 
                     audio: true 
-                });
+                };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 localVideo.srcObject = localStream;
                 startCallBtn.style.display = 'none';
                 endCallBtn.style.display = 'block';
+                switchCameraBtn.style.display = 'block';
+                capturePhotoBtn.style.display = 'block';
             } catch (error) {
                 console.error("Error accessing media:", error);
                 alert("Please enable camera and microphone permissions");
             }
+        }
+        
+        async function switchCamera() {
+            if (!localStream) return;
+            
+            // Stop all tracks
+            localStream.getTracks().forEach(track => track.stop());
+            
+            // Toggle facing mode
+            currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+            
+            try {
+                const constraints = {
+                    video: { 
+                        width: 160, 
+                        height: 120,
+                        facingMode: currentFacingMode
+                    }, 
+                    audio: true 
+                };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                localVideo.srcObject = localStream;
+            } catch (error) {
+                console.error("Error switching camera:", error);
+            }
+        }
+        
+        function capturePhoto() {
+            if (!localStream) return;
+            
+            // Set canvas size to video size
+            photoCanvas.width = localVideo.videoWidth;
+            photoCanvas.height = localVideo.videoHeight;
+            
+            // Draw current video frame to canvas
+            photoContext.drawImage(localVideo, 0, 0, photoCanvas.width, photoCanvas.height);
+            
+            // Convert to data URL
+            const imageData = photoCanvas.toDataURL('image/jpeg', 0.8);
+            sendPhoto(imageData);
         }
         
         function endVideoCall() {
@@ -401,17 +534,39 @@
             }
             startCallBtn.style.display = 'block';
             endCallBtn.style.display = 'none';
+            switchCameraBtn.style.display = 'none';
+            capturePhotoBtn.style.display = 'none';
         }
         
         // Event Listeners
         startCallBtn.addEventListener('click', startVideoCall);
         endCallBtn.addEventListener('click', endVideoCall);
+        switchCameraBtn.addEventListener('click', switchCamera);
+        capturePhotoBtn.addEventListener('click', capturePhoto);
         
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
         
-        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        sendBtn.addEventListener('click', sendMessage);
+        
+        photoBtn.addEventListener('click', () => {
+            photoInput.click();
+        });
+        
+        photoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                sendPhoto(event.target.result);
+            };
+            reader.readAsDataURL(file);
+            
+            // Reset input to allow selecting same file again
+            photoInput.value = '';
+        });
         
         // Prevent double-tap zoom
         let lastTap = 0;
