@@ -1,28 +1,28 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, emit, join_room
-import os
-import sqlite3
 
 app = Flask(__name__)
 app.secret_key = "secret"
 socketio = SocketIO(app)
 
-# --- Create SQLite DB ---
-def init_db():
-    if not os.path.exists('database.db'):
-        conn = sqlite3.connect('database.db')
-        conn.execute('CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT)')
-        conn.close()
+# --- Hardcoded Users ---
+USERS = {
+    "user1": "pass1",
+    "user2": "pass2"
+}
 
-init_db()
-
-# --- Routes ---
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
         username = request.form.get("username")
-        session["username"] = username
-        return redirect(url_for("chat"))
+        password = request.form.get("password")
+
+        if username in USERS and USERS[username] == password:
+            session["username"] = username
+            return redirect(url_for("chat"))
+        else:
+            return render_template("index.html", error="Invalid credentials")
+
     return render_template("index.html")
 
 @app.route("/chat")
