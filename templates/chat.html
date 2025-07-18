@@ -3,10 +3,8 @@
   <head>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chat Room</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='Style.css') }}" />
+    <title>Video Chat Room</title>
     <style>
-      /* Additional CSS for video call */
       .video-call-container {
         display: flex;
         justify-content: center;
@@ -19,21 +17,17 @@
         background: #000;
         border-radius: 8px;
         overflow: hidden;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5);
         position: relative;
       }
       .video-frame video {
         width: 100%;
         height: auto;
-        display: block;
-        background: #000;
       }
       .video-label {
         position: absolute;
         bottom: 8px;
         left: 8px;
         color: #fff;
-        font-weight: bold;
         background: rgba(0,0,0,0.5);
         padding: 4px 8px;
         border-radius: 4px;
@@ -41,125 +35,84 @@
       }
     </style>
   </head>
-  <body class="chat-page">
-    <header>
-      <h1>I ❤️ U</h1>
-      <div class="user-info">
-        Logged in as: <strong>{{ username }}</strong>
-        <a href="/logout">Logout</a>
+  <body>
+    <h2>Room: Video Chat</h2>
+
+    <div class="video-call-container">
+      <div class="video-frame">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <div class="video-label">You</div>
       </div>
-    </header>
-
-    <div class="chat-container" id="chatContainer">
-      <!-- Messages will appear here -->
-    </div>
-
-    <div class="input-area">
-      <input type="text" id="messageInput" placeholder="Type your message..." />
-      <button onclick="sendMessage()">Send</button>
-    </div>
-
-    <!-- Video Call Section -->
-    <div class="video-call-container" id="videoCallContainer">
-      <div class="video-frame" id="user1Frame">
-        <video id="user1Video" autoplay playsinline></video>
-        <div class="video-label">User 1</div>
-      </div>
-      <div class="video-frame" id="user2Frame">
-        <video id="user2Video" autoplay playsinline></video>
-        <div class="video-label">User 2</div>
+      <div class="video-frame">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div class="video-label">Stranger</div>
       </div>
     </div>
 
     <script>
-const username = "{{ username }}";
-const roomName = "room1"; // Hardcoded room for now
+      const socket = io(); // Connect to the server
+      const room = "room1";
+      let localStream;
+      let peerConnection;
 
-const localVideo = document.getElementById("user1Video");
-const remoteVideo = document.getElementById("user2Video");
+      const config = {
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+      };
 
-const socket = io(); // Connect to Socket.IO backend
-let localStream;
-let peerConnection;
+      const localVideo = document.getElementById("localVideo");
+      const remoteVideo = document.getElementById("remoteVideo");
 
-const config = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" }
-  ]
-};
+      async function start() {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideo.srcObject = localStream;
+        socket.emit("join", room);
+      }
 
-// Get webcam and mic
-async function startVideo() {
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    localVideo.srcObject = localStream;
+      socket.on("joined", (clientsInRoom) => {
+        if (clientsInRoom.length > 1) {
+          createPeerConnection();
+          localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+          peerConnection.createOffer().then(offer => {
+            peerConnection.setLocalDescription(offer);
+            socket.emit("offer", { offer, room });
+          });
+        }
+      });
 
-    socket.emit("join", roomName);
-  } catch (err) {
-    console.error("Failed to get local stream", err);
-  }
-}
+      socket.on("offer", (data) => {
+        createPeerConnection();
+        peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        peerConnection.createAnswer().then(answer => {
+          peerConnection.setLocalDescription(answer);
+          socket.emit("answer", { answer, room });
+        });
+      });
 
-socket.on("joined", async (clientsInRoom) => {
-  if (clientsInRoom.length > 1) {
-    createPeerConnection();
+      socket.on("answer", (data) => {
+        peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+      });
 
-    // Add local tracks
-    localStream.getTracks().forEach(track => {
-      peerConnection.addTrack(track, localStream);
-    });
+      socket.on("ice-candidate", (data) => {
+        peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      });
 
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
+      function createPeerConnection() {
+        if (peerConnection) return;
+        peerConnection = new RTCPeerConnection(config);
 
-    socket.emit("offer", { offer, room: roomName });
-  }
-});
+        peerConnection.onicecandidate = (event) => {
+          if (event.candidate) {
+            socket.emit("ice-candidate", { candidate: event.candidate, room });
+          }
+        };
 
-socket.on("offer", async (data) => {
-  createPeerConnection();
+        peerConnection.ontrack = (event) => {
+          remoteVideo.srcObject = event.streams[0];
+        };
+      }
 
-  await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-
-  localStream.getTracks().forEach(track => {
-    peerConnection.addTrack(track, localStream);
-  });
-
-  const answer = await peerConnection.createAnswer();
-  await peerConnection.setLocalDescription(answer);
-
-  socket.emit("answer", { answer, room: roomName });
-});
-
-socket.on("answer", async (data) => {
-  await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-});
-
-socket.on("ice-candidate", async (data) => {
-  try {
-    await peerConnection.addIceCandidate(data.candidate);
-  } catch (err) {
-    console.error("Error adding ICE candidate", err);
-  }
-});
-
-function createPeerConnection() {
-  if (peerConnection) return;
-
-  peerConnection = new RTCPeerConnection(config);
-
-  peerConnection.onicecandidate = event => {
-    if (event.candidate) {
-      socket.emit("ice-candidate", { candidate: event.candidate, room: roomName });
-    }
-  };
-
-  peerConnection.ontrack = event => {
-    remoteVideo.srcObject = event.streams[0];
-  };
-}
-
-startVideo();
-</script>
+      start();
+    </script>
   </body>
 </html>
