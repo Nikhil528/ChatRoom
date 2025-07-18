@@ -1,16 +1,12 @@
 <!doctype html>
 <html>
     <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Chat Room</title>
-        <link
-            rel="stylesheet"
-            href="{{ url_for('static', filename='Style.css') }}"
-        />
+        <link rel="stylesheet" href="{{ url_for('static', filename='Style.css') }}" />
     </head>
     <body class="chat-page">
         <header>
-            <h1>I ❤️ U</h1>
+            <h1>Secure Chat</h1>
             <div class="user-info">
                 Logged in as: <strong>{{ username }}</strong>
                 <a href="/logout">Logout</a>
@@ -22,12 +18,20 @@
         </div>
 
         <div class="input-area">
-            <input
-                type="text"
-                id="messageInput"
-                placeholder="Type your message..."
-            />
+            <input type="text" id="messageInput" placeholder="Type your message..." />
             <button onclick="sendMessage()">Send</button>
+        </div>
+
+        <!-- Video Call Controls -->
+        <div class="video-call-controls">
+            <button id="startCallBtn">Start Video Call</button>
+            <button id="endCallBtn" disabled>End Call</button>
+        </div>
+
+        <!-- Video Call Containers -->
+        <div class="video-call-container">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <video id="remoteVideo" autoplay playsinline></video>
         </div>
 
         <script>
@@ -37,23 +41,20 @@
                 fetch("/get_messages")
                     .then((response) => response.json())
                     .then((messages) => {
-                        const container =
-                            document.getElementById("chatContainer");
+                        const container = document.getElementById("chatContainer");
                         container.innerHTML = "";
 
                         messages.forEach((msg) => {
                             const msgDiv = document.createElement("div");
                             msgDiv.className =
-                                msg.sender === username
-                                    ? "message sent"
-                                    : "message received";
+                                msg.sender === username ? "message sent" : "message received";
                             msgDiv.innerHTML = `
-                            <div class="msg-header">
-                                <strong>${msg.sender}</strong>
-                                <span>${msg.time}</span>
-                            </div>
-                            <div class="msg-text">${msg.text}</div>
-                        `;
+                                <div class="msg-header">
+                                    <strong>${msg.sender}</strong>
+                                    <span>${msg.time}</span>
+                                </div>
+                                <div class="msg-text">${msg.text}</div>
+                            `;
                             container.appendChild(msgDiv);
                         });
                         container.scrollTop = container.scrollHeight;
@@ -81,11 +82,58 @@
             window.onload = loadMessages;
 
             // Send message on Enter key
-            document
-                .getElementById("messageInput")
-                .addEventListener("keypress", (e) => {
-                    if (e.key === "Enter") sendMessage();
-                });
+            document.getElementById("messageInput").addEventListener("keypress", (e) => {
+                if (e.key === "Enter") sendMessage();
+            });
+
+            // ====== Video Call Logic (basic WebRTC, no signaling) ======
+            let localStream;
+            let peerConnection;
+            const config = {
+                iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+            };
+
+            const startCallBtn = document.getElementById("startCallBtn");
+            const endCallBtn = document.getElementById("endCallBtn");
+            const localVideo = document.getElementById("localVideo");
+            const remoteVideo = document.getElementById("remoteVideo");
+
+            startCallBtn.onclick = async () => {
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    localVideo.srcObject = localStream;
+
+                    peerConnection = new RTCPeerConnection(config);
+                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+                    peerConnection.ontrack = ({ streams: [stream] }) => {
+                        remoteVideo.srcObject = stream;
+                    };
+
+                    // Note: Signaling (e.g., WebSocket) is required to exchange offer/answer
+
+                    startCallBtn.disabled = true;
+                    endCallBtn.disabled = false;
+                } catch (err) {
+                    alert("Error accessing camera/mic: " + err.message);
+                }
+            };
+
+            endCallBtn.onclick = () => {
+                if (peerConnection) {
+                    peerConnection.close();
+                    peerConnection = null;
+                }
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                }
+                localVideo.srcObject = null;
+                remoteVideo.srcObject = null;
+
+                startCallBtn.disabled = false;
+                endCallBtn.disabled = true;
+            };
         </script>
     </body>
 </html>
