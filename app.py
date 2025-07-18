@@ -1,17 +1,16 @@
 from flask import Flask, render_template, request, redirect, session, jsonify
-from flask_socketio import SocketIO, emit, join_room
+from flask_socketio import SocketIO, join_room, emit
 import sqlite3
 import os
-import eventlet
-
-eventlet.monkey_patch()  # Important for Flask-SocketIO with eventlet
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-socketio = SocketIO(app, cors_allowed_origins='*')
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-# ==================== DB Initialization ====================
+# -------------------
+# DATABASE SETUP
+# -------------------
 def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
@@ -32,7 +31,7 @@ def init_db():
         c.execute("INSERT INTO users (username, password) VALUES ('user1', 'Betu')")
         c.execute("INSERT INTO users (username, password) VALUES ('user2', 'Betu2')")
     except sqlite3.IntegrityError:
-        pass  # Already inserted
+        pass
 
     conn.commit()
     conn.close()
@@ -40,7 +39,9 @@ def init_db():
 if not os.path.exists("database.db"):
     init_db()
 
-# ==================== Routes ====================
+# -------------------
+# FLASK ROUTES
+# -------------------
 @app.route('/')
 def login_page():
     return render_template('index.html')
@@ -105,25 +106,33 @@ def logout():
     session.pop('username', None)
     return redirect('/')
 
-# ==================== WebSocket Events for WebRTC ====================
-@socketio.on('join')
+# -------------------
+# SOCKET.IO EVENTS
+# -------------------
+clients_in_room = {}
+
+@socketio.on("join")
 def handle_join(room):
+    from flask import request
     join_room(room)
-    clients = list(socketio.server.manager.rooms['/'][room])
-    emit('joined', clients, room=request.sid)
+    clients_in_room.setdefault(room, [])
+    clients_in_room[room].append(request.sid)
+    emit("joined", clients_in_room[room], room=request.sid)
 
-@socketio.on('offer')
+@socketio.on("offer")
 def handle_offer(data):
-    emit('offer', data, room=data['room'], include_self=False)
+    emit("offer", data, room=data["room"], include_self=False)
 
-@socketio.on('answer')
+@socketio.on("answer")
 def handle_answer(data):
-    emit('answer', data, room=data['room'], include_self=False)
+    emit("answer", data, room=data["room"], include_self=False)
 
-@socketio.on('ice-candidate')
-def handle_ice(data):
-    emit('ice-candidate', data, room=data['room'], include_self=False)
+@socketio.on("ice-candidate")
+def handle_ice_candidate(data):
+    emit("ice-candidate", data, room=data["room"], include_self=False)
 
-# ==================== Main ====================
+# -------------------
+# RUN APP
+# -------------------
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000)
