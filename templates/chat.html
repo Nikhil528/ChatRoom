@@ -13,9 +13,7 @@
         </div>
     </header>
 
-    <div class="chat-container" id="chatContainer">
-        <!-- Messages will appear here -->
-    </div>
+    <div class="chat-container" id="chatContainer"></div>
 
     <div class="input-area">
         <input type="text" id="messageInput" placeholder="Type your message..." />
@@ -31,20 +29,94 @@
         </div>
     </div>
 
-    <!-- Socket.IO and Chat + Video Scripts -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
         const username = "{{ username }}";
-        const socket = io(); // Connect to Socket.IO server
+        const roomId = "main-room"; // Static room ID (you can generate dynamically)
+
+        const socket = io({ query: { username } });
+
+        const localVideo = document.getElementById("localVideo");
+        const remoteVideo = document.getElementById("remoteVideo");
+        const startCallBtn = document.getElementById("startCallBtn");
+
+        let localStream;
+        let peerConnection;
+        const config = {
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        };
+
+        // Join signaling room
+        socket.emit("join", roomId);
+
+        async function getMediaStream() {
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
+            });
+            localVideo.srcObject = localStream;
+        }
+
+        async function createPeerConnection() {
+            peerConnection = new RTCPeerConnection(config);
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    socket.emit("candidate", { room: roomId, candidate: event.candidate });
+                }
+            };
+
+            peerConnection.ontrack = event => {
+                remoteVideo.srcObject = event.streams[0];
+            };
+
+            if (localStream) {
+                localStream.getTracks().forEach(track =>
+                    peerConnection.addTrack(track, localStream)
+                );
+            }
+        }
+
+        async function startCall() {
+            await getMediaStream();
+            await createPeerConnection();
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            socket.emit("offer", { room: roomId, offer });
+        }
+
+        startCallBtn.addEventListener("click", startCall);
+
+        socket.on("offer", async ({ offer }) => {
+            await getMediaStream();
+            await createPeerConnection();
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            socket.emit("answer", { room: roomId, answer });
+        });
+
+        socket.on("answer", async ({ answer }) => {
+            if (peerConnection) {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            }
+        });
+
+        socket.on("candidate", async ({ candidate }) => {
+            if (peerConnection) {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+        });
 
         // Chat functionality
         function loadMessages() {
             fetch("/get_messages")
-                .then((response) => response.json())
+                .then((res) => res.json())
                 .then((messages) => {
                     const container = document.getElementById("chatContainer");
                     container.innerHTML = "";
-
                     messages.forEach((msg) => {
                         const msgDiv = document.createElement("div");
                         msgDiv.className = msg.sender === username ? "message sent" : "message received";
@@ -57,7 +129,6 @@
                         `;
                         container.appendChild(msgDiv);
                     });
-
                     container.scrollTop = container.scrollHeight;
                 });
         }
@@ -65,7 +136,6 @@
         function sendMessage() {
             const input = document.getElementById("messageInput");
             const message = input.value.trim();
-
             if (message) {
                 fetch("/send", {
                     method: "POST",
@@ -83,72 +153,6 @@
 
         document.getElementById("messageInput").addEventListener("keypress", (e) => {
             if (e.key === "Enter") sendMessage();
-        });
-
-        // WebRTC Video Call Setup
-        const localVideo = document.getElementById("localVideo");
-        const remoteVideo = document.getElementById("remoteVideo");
-        const startCallBtn = document.getElementById("startCallBtn");
-
-        let localStream;
-        let peerConnection;
-        const config = {
-            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        };
-
-        async function startCall() {
-            localStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
-            });
-
-            localVideo.srcObject = localStream;
-
-            peerConnection = new RTCPeerConnection(config);
-
-            localStream.getTracks().forEach(track =>
-                peerConnection.addTrack(track, localStream)
-            );
-
-            peerConnection.ontrack = event => {
-                remoteVideo.srcObject = event.streams[0];
-            };
-
-            peerConnection.onicecandidate = event => {
-                if (event.candidate) {
-                    socket.emit("candidate", event.candidate);
-                }
-            };
-
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            socket.emit("offer", offer);
-        }
-
-        socket.on("offer", async offer => {
-            if (!peerConnection) {
-                await startCall();
-            }
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            socket.emit("answer", answer);
-        });
-
-        socket.on("answer", async answer => {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-        });
-
-        socket.on("candidate", async candidate => {
-            try {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (err) {
-                console.error("Error adding received ICE candidate", err);
-            }
-        });
-
-        startCallBtn.addEventListener("click", () => {
-            startCall();
         });
     </script>
 </body>
