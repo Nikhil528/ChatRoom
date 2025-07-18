@@ -1,103 +1,52 @@
-from flask import Flask, render_template, request, redirect, session, jsonify
-import sqlite3
-import os  # ✅ required for file existence check
+from flask import Flask, request, jsonify, render_template, session
+from flask_cors import CORS
+from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = 'your_secret_key_here'  # Needed for session
+CORS(app)  # Enable CORS if needed
 
-# Initialize DB
-def init_db():
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-
-    # Create users table
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY,
-                username TEXT UNIQUE,
-                password TEXT)''')
-
-    # Create messages table
-    c.execute('''CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY,
-                sender TEXT,
-                receiver TEXT,
-                message TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
-
-    # Insert default users (only for demo)
-    try:
-        c.execute("INSERT INTO users (username, password) VALUES ('user1', 'Betu')")
-        c.execute("INSERT INTO users (username, password) VALUES ('user2', 'Betu2')")
-    except sqlite3.IntegrityError:
-        pass  # Users already exist
-
-    conn.commit()
-    conn.close()
-
-# ✅ Initialize DB only if it doesn't exist
-if not os.path.exists("database.db"):
-    init_db()
+# Store messages in memory (for demo)
+messages = []
 
 @app.route('/')
-def login_page():
-    return render_template('index.html')
-
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.form['username']
-    password = request.form['password']
-
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
-    user = c.fetchone()
-    conn.close()
-
-    if user:
-        session['username'] = username
-        return redirect('/chat')
-    return "Invalid credentials"
-
-@app.route('/chat')
-def chat():
-    if 'username' not in session:
-        return redirect('/')
-    return render_template('chat.html', username=session['username'])
+def index():
+    # Store username in session (simplified)
+    session['username'] = request.args.get('username', 'default_user')
+    return render_template('chat.html')
 
 @app.route('/send', methods=['POST'])
 def send_message():
-    sender = session['username']
-    receiver = 'user2' if sender == 'user1' else 'user1'
-    message = request.json['message']
+    data = request.json
+    if not data or 'message' not in data:
+        return jsonify({'error': 'Invalid data'}), 400
+    
+    messages.append({
+        'sender': session.get('username', 'anonymous'),
+        'text': data['message'],
+        'time': datetime.now().strftime('%H:%M:%S')
+    })
+    return jsonify({'status': 'success'})
 
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    c.execute("INSERT INTO messages (sender, receiver, message) VALUES (?, ?, ?)",
-              (sender, receiver, message))
-    conn.commit()
-    conn.close()
-    return jsonify(success=True)
-
-@app.route('/get_messages')
+@app.route('/get_messages', methods=['GET'])
 def get_messages():
-    username = session['username']
-    other_user = 'user2' if username == 'user1' else 'user1'
+    return jsonify(messages)
 
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM messages WHERE (sender=? AND receiver=?) OR (sender=? AND receiver=?) ORDER BY timestamp",
-              (username, other_user, other_user, username))
-    messages = c.fetchall()
-    conn.close()
+# WebRTC signaling endpoints (simplified)
+@app.route('/offer', methods=['POST'])
+def handle_offer():
+    # In a real app, you'd process WebRTC offer here
+    return jsonify({'status': 'offer_received'})
 
-    return jsonify([{
-        'id': msg[0],
-        'sender': msg[1],
-        'text': msg[3],
-        'time': msg[4]
-    } for msg in messages])
+@app.route('/answer', methods=['POST'])
+def handle_answer():
+    # In a real app, you'd process WebRTC answer here
+    return jsonify({'status': 'answer_received'})
 
-@app.route('/logout')
-def logout():
-    session.pop('username', None)
-    return redirect('/')
+@app.route('/ice-candidate', methods=['POST'])
+def handle_ice_candidate():
+    # In a real app, you'd process ICE candidates here
+    return jsonify({'status': 'candidate_received'})
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
