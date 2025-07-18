@@ -163,3 +163,29 @@ header {
     cursor: pointer;
     font-weight: bold;
 }
+
+.video-call-controls {
+    text-align: center;
+    margin: 10px 0;
+}
+
+.video-call-controls button {
+    margin: 0 5px;
+    padding: 10px 20px;
+    font-weight: bold;
+}
+
+.video-call-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+video {
+    width: 45%;
+    height: auto;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    background: black;
+}
