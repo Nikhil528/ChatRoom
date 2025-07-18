@@ -1,139 +1,155 @@
 <!doctype html>
 <html>
-    <head>
-        <title>Chat Room</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='Style.css') }}" />
-    </head>
-    <body class="chat-page">
-        <header>
-            <h1>Secure Chat</h1>
-            <div class="user-info">
-                Logged in as: <strong>{{ username }}</strong>
-                <a href="/logout">Logout</a>
-            </div>
-        </header>
-
-        <div class="chat-container" id="chatContainer">
-            <!-- Messages will appear here -->
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+</head>
+<body class="chat-page">
+    <header>
+        <h1>I ❤️ U</h1>
+        <div class="user-info">
+            Logged in as: <strong>{{ username }}</strong>
+            <a href="/logout">Logout</a>
         </div>
+    </header>
 
-        <div class="input-area">
-            <input type="text" id="messageInput" placeholder="Type your message..." />
-            <button onclick="sendMessage()">Send</button>
+    <div class="chat-container" id="chatContainer">
+        <!-- Messages will appear here -->
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="messageInput" placeholder="Type your message..." />
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <!-- Video Call Section -->
+    <div class="video-container">
+        <video id="localVideo" autoplay muted></video>
+        <video id="remoteVideo" autoplay></video>
+        <div class="video-controls">
+            <button id="startCallBtn">Start Call</button>
         </div>
+    </div>
 
-        <!-- Video Call Controls -->
-        <div class="video-call-controls">
-            <button id="startCallBtn">Start Video Call</button>
-            <button id="endCallBtn" disabled>End Call</button>
-        </div>
+    <!-- Socket.IO and Chat + Video Scripts -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const username = "{{ username }}";
+        const socket = io(); // Connect to Socket.IO server
 
-        <!-- Video Call Containers -->
-        <div class="video-call-container">
-            <video id="localVideo" autoplay muted playsinline></video>
-            <video id="remoteVideo" autoplay playsinline></video>
-        </div>
+        // Chat functionality
+        function loadMessages() {
+            fetch("/get_messages")
+                .then((response) => response.json())
+                .then((messages) => {
+                    const container = document.getElementById("chatContainer");
+                    container.innerHTML = "";
 
-        <script>
-            const username = "{{ username }}";
-
-            function loadMessages() {
-                fetch("/get_messages")
-                    .then((response) => response.json())
-                    .then((messages) => {
-                        const container = document.getElementById("chatContainer");
-                        container.innerHTML = "";
-
-                        messages.forEach((msg) => {
-                            const msgDiv = document.createElement("div");
-                            msgDiv.className =
-                                msg.sender === username ? "message sent" : "message received";
-                            msgDiv.innerHTML = `
-                                <div class="msg-header">
-                                    <strong>${msg.sender}</strong>
-                                    <span>${msg.time}</span>
-                                </div>
-                                <div class="msg-text">${msg.text}</div>
-                            `;
-                            container.appendChild(msgDiv);
-                        });
-                        container.scrollTop = container.scrollHeight;
+                    messages.forEach((msg) => {
+                        const msgDiv = document.createElement("div");
+                        msgDiv.className = msg.sender === username ? "message sent" : "message received";
+                        msgDiv.innerHTML = `
+                            <div class="msg-header">
+                                <strong>${msg.sender}</strong>
+                                <span>${msg.time}</span>
+                            </div>
+                            <div class="msg-text">${msg.text}</div>
+                        `;
+                        container.appendChild(msgDiv);
                     });
+
+                    container.scrollTop = container.scrollHeight;
+                });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById("messageInput");
+            const message = input.value.trim();
+
+            if (message) {
+                fetch("/send", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message }),
+                }).then(() => {
+                    input.value = "";
+                    loadMessages();
+                });
             }
+        }
 
-            function sendMessage() {
-                const input = document.getElementById("messageInput");
-                const message = input.value.trim();
+        setInterval(loadMessages, 2000);
+        window.onload = loadMessages;
 
-                if (message) {
-                    fetch("/send", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ message }),
-                    }).then(() => {
-                        input.value = "";
-                        loadMessages();
-                    });
-                }
-            }
+        document.getElementById("messageInput").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") sendMessage();
+        });
 
-            // Load messages every 2 seconds
-            setInterval(loadMessages, 2000);
-            window.onload = loadMessages;
+        // WebRTC Video Call Setup
+        const localVideo = document.getElementById("localVideo");
+        const remoteVideo = document.getElementById("remoteVideo");
+        const startCallBtn = document.getElementById("startCallBtn");
 
-            // Send message on Enter key
-            document.getElementById("messageInput").addEventListener("keypress", (e) => {
-                if (e.key === "Enter") sendMessage();
+        let localStream;
+        let peerConnection;
+        const config = {
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        };
+
+        async function startCall() {
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
             });
 
-            // ====== Video Call Logic (basic WebRTC, no signaling) ======
-            let localStream;
-            let peerConnection;
-            const config = {
-                iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+            localVideo.srcObject = localStream;
+
+            peerConnection = new RTCPeerConnection(config);
+
+            localStream.getTracks().forEach(track =>
+                peerConnection.addTrack(track, localStream)
+            );
+
+            peerConnection.ontrack = event => {
+                remoteVideo.srcObject = event.streams[0];
             };
 
-            const startCallBtn = document.getElementById("startCallBtn");
-            const endCallBtn = document.getElementById("endCallBtn");
-            const localVideo = document.getElementById("localVideo");
-            const remoteVideo = document.getElementById("remoteVideo");
-
-            startCallBtn.onclick = async () => {
-                try {
-                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                    localVideo.srcObject = localStream;
-
-                    peerConnection = new RTCPeerConnection(config);
-                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-                    peerConnection.ontrack = ({ streams: [stream] }) => {
-                        remoteVideo.srcObject = stream;
-                    };
-
-                    // Note: Signaling (e.g., WebSocket) is required to exchange offer/answer
-
-                    startCallBtn.disabled = true;
-                    endCallBtn.disabled = false;
-                } catch (err) {
-                    alert("Error accessing camera/mic: " + err.message);
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    socket.emit("candidate", event.candidate);
                 }
             };
 
-            endCallBtn.onclick = () => {
-                if (peerConnection) {
-                    peerConnection.close();
-                    peerConnection = null;
-                }
-                if (localStream) {
-                    localStream.getTracks().forEach(track => track.stop());
-                    localStream = null;
-                }
-                localVideo.srcObject = null;
-                remoteVideo.srcObject = null;
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            socket.emit("offer", offer);
+        }
 
-                startCallBtn.disabled = false;
-                endCallBtn.disabled = true;
-            };
-        </script>
-    </body>
+        socket.on("offer", async offer => {
+            if (!peerConnection) {
+                await startCall();
+            }
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            socket.emit("answer", answer);
+        });
+
+        socket.on("answer", async answer => {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        });
+
+        socket.on("candidate", async candidate => {
+            try {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+                console.error("Error adding received ICE candidate", err);
+            }
+        });
+
+        startCallBtn.addEventListener("click", () => {
+            startCall();
+        });
+    </script>
+</body>
 </html>
