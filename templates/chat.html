@@ -2,8 +2,9 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="manifest" href="/manifest.json">
-    <title>Chat | {{ username }}</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Video Chat App</title>
     <style>
         :root {
             --header-color: #2c3e50;
@@ -41,6 +42,7 @@
             flex-direction: column;
             background: var(--light);
             color: var(--text);
+            -webkit-overflow-scrolling: touch;
         }
         
         .header {
@@ -52,26 +54,6 @@
             align-items: center;
             height: var(--header-height);
             flex-shrink: 0;
-        }
-        
-        .header h2 {
-            font-size: 18px;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .user-info {
-            font-size: 13px;
-            white-space: nowrap;
-        }
-        
-        .user-info a {
-            color: var(--white);
-            text-decoration: none;
-            margin-left: 8px;
-            font-size: 13px;
         }
         
         .video-container {
@@ -93,6 +75,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transform: rotateY(180deg); /* Mirror effect for front camera */
         }
         
         .video-controls {
@@ -106,215 +89,90 @@
         }
         
         .video-controls button {
-            padding: 4px 12px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 12px;
+            border-radius: 20px;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 14px;
             font-weight: 600;
-            height: 24px;
         }
         
-        #startCallBtn {
-            background: var(--primary);
-            color: var(--white);
-            display: block;
-        }
-        
-        #endCallBtn {
-            background: var(--danger);
-            color: var(--white);
-            display: none;
-        }
-        
-        #switchCameraBtn {
-            background: var(--gray);
-            color: var(--white);
-            display: none;
-        }
-        
-        #capturePhotoBtn {
-            background: var(--success);
-            color: var(--white);
-            display: none;
-        }
+        #startCallBtn { background: var(--primary); color: var(--white); }
+        #endCallBtn { background: var(--danger); color: var(--white); display: none; }
+        #switchCameraBtn { background: var(--gray); color: var(--white); display: none; }
         
         .chat-area {
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            height: calc(60vh - var(--input-height));
         }
         
         .chat-container {
             flex: 1;
             overflow-y: auto;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+            padding: 10px;
             -webkit-overflow-scrolling: touch;
         }
         
         .message {
-            max-width: 85%;
+            margin-bottom: 10px;
             padding: 8px 12px;
             border-radius: 12px;
-            word-break: break-word;
-            font-size: 14px;
-            line-height: 1.3;
+            max-width: 80%;
         }
         
         .sent {
-            align-self: flex-end;
             background: var(--sent-msg);
-            border-bottom-right-radius: 4px;
+            margin-left: auto;
         }
         
         .received {
-            align-self: flex-start;
             background: var(--received-msg);
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 1px 1px rgba(0,0,0,0.05);
-        }
-        
-        .msg-header {
-            font-size: 11px;
-            color: var(--gray);
-            margin-bottom: 2px;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .msg-text {
-            font-size: 14px;
-        }
-        
-        .image-message {
-            max-width: 200px;
-            max-height: 200px;
-            border-radius: 8px;
-            margin-top: 5px;
+            margin-right: auto;
         }
         
         .input-area {
             display: flex;
-            padding: 8px;
+            padding: 10px;
             background: var(--white);
             border-top: 1px solid #ddd;
             height: var(--input-height);
-            flex-shrink: 0;
-            align-items: center;
         }
         
         #messageInput {
-            flex-grow: 1;
-            padding: 8px 12px;
+            flex: 1;
+            padding: 10px 15px;
             border: 1px solid #ddd;
-            border-radius: 15px;
-            outline: none;
+            border-radius: 20px;
             font-size: 14px;
-            min-height: 40px;
+            -webkit-appearance: none;
         }
         
         #sendBtn {
             background: var(--secondary);
             color: var(--white);
+            border: none;
+            border-radius: 20px;
+            padding: 0 20px;
             margin-left: 8px;
-            padding: 0 12px;
-            border: none;
-            border-radius: 15px;
-            cursor: pointer;
             font-weight: 600;
             font-size: 14px;
-            min-width: 60px;
-            height: 40px;
         }
         
-        #photoInput {
-            display: none;
-        }
-        
-        .photo-btn {
-            background: var(--primary);
-            color: var(--white);
-            margin-right: 8px;
-            padding: 0 12px;
-            border: none;
-            border-radius: 15px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            min-width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .upload-btn {
-            background: var(--success);
-            color: var(--white);
-            margin-right: 8px;
-            padding: 0 12px;
-            border: none;
-            border-radius: 15px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            min-width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        #uploadInput {
-            display: none;
-        }
-        
-        .user-display {
-            position: absolute;
-            bottom: 2px;
-            left: 4px;
-            color: white;
-            font-size: 9px;
-            background: rgba(0,0,0,0.5);
-            padding: 1px 4px;
-            border-radius: 3px;
-        }
-        
-        @media (max-width: 480px) {
-            :root {
-                --header-height: 45px;
-                --input-height: 55px;
+        /* Mobile-specific fixes */
+        @media screen and (max-width: 768px) {
+            .video-container {
+                height: 30vh;
             }
             
-            .header h2 {
+            .video-controls button {
+                padding: 10px 18px;
                 font-size: 16px;
             }
             
-            .user-info {
-                font-size: 12px;
-            }
-            
-            .video-container {
-                min-height: 100px;
-            }
-            
-            .message {
-                max-width: 90%;
-                padding: 6px 10px;
-            }
-            
-            .msg-text {
-                font-size: 13px;
-            }
-            
-            .image-message {
-                max-width: 150px;
-                max-height: 150px;
+            #messageInput {
+                padding: 12px 15px;
             }
         }
     </style>
@@ -331,298 +189,261 @@
     <div class="video-container">
         <div class="video-frame">
             <video id="localVideo" autoplay playsinline muted></video>
-            <div class="user-display">You</div>
         </div>
         <div class="video-frame">
             <video id="remoteVideo" autoplay playsinline></video>
-            <div class="user-display">Partner</div>
         </div>
         <div class="video-controls">
-            <button id="startCallBtn">Start</button>
-            <button id="endCallBtn">End</button>
-            <button id="switchCameraBtn">Switch</button>
-            <button id="capturePhotoBtn">Capture</button>
+            <button id="startCallBtn">Start Call</button>
+            <button id="endCallBtn">End Call</button>
+            <button id="switchCameraBtn">Switch Cam</button>
         </div>
     </div>
 
     <div class="chat-area">
         <div class="chat-container" id="chatContainer">
-            <!-- Messages appear here -->
+            <!-- Messages will appear here -->
+        </div>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button id="sendBtn">Send</button>
         </div>
     </div>
 
-    <div class="input-area">
-        <input type="file" id="photoInput" accept="image/*" capture="user">
-        <button class="photo-btn" id="photoBtn">📷</button>
-        <input type="file" id="uploadInput" accept="image/*">
-        <button class="upload-btn" id="uploadBtn">📁</button>
-        <input type="text" id="messageInput" placeholder="Type a message..." autocapitalize="sentences">
-        <button id="sendBtn">Send</button>
-    </div>
-
     <script>
-        const username = "{{ username }}";
+        // Mobile-optimized WebRTC configuration
+        const configuration = {
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun1.l.google.com:19302" },
+                { urls: "stun:stun2.l.google.com:19302" }
+            ]
+        };
+
         let localStream;
-        let currentFacingMode = "user"; // front camera by default
-        let photoCanvas = document.createElement('canvas');
-        let photoContext = photoCanvas.getContext('2d');
-        
+        let peerConnection;
+        let currentFacingMode = "user";
+        const username = "{{ username }}";
+
         // DOM Elements
         const localVideo = document.getElementById('localVideo');
         const remoteVideo = document.getElementById('remoteVideo');
         const startCallBtn = document.getElementById('startCallBtn');
         const endCallBtn = document.getElementById('endCallBtn');
         const switchCameraBtn = document.getElementById('switchCameraBtn');
-        const capturePhotoBtn = document.getElementById('capturePhotoBtn');
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
-        const photoBtn = document.getElementById('photoBtn');
-        const photoInput = document.getElementById('photoInput');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const uploadInput = document.getElementById('uploadInput');
-        
-        // Disable zooming
-        document.addEventListener('gesturestart', function(e) {
-            e.preventDefault();
-        });
-        
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             loadMessages();
             setInterval(loadMessages, 2000);
             
-            // Prevent keyboard from zooming on mobile
-            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                document.addEventListener('focusin', () => {
-                    window.scrollTo(0, 0);
-                });
+            // Mobile-specific event listeners
+            if (isMobile()) {
+                document.body.addEventListener('touchmove', preventZoom, { passive: false });
+                messageInput.addEventListener('focus', fixMobileViewport);
             }
         });
-        
+
+        // Mobile detection
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        // Prevent zooming on mobile
+        function preventZoom(e) {
+            if (e.scale !== 1) e.preventDefault();
+        }
+
+        // Fix viewport on mobile when keyboard appears
+        function fixMobileViewport() {
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+                document.body.scrollTop = 0;
+            }, 100);
+        }
+
         // Message Functions
         function loadMessages() {
             fetch("/get_messages")
                 .then(response => response.json())
                 .then(messages => {
-                    chatContainer.innerHTML = '';
-                    messages.forEach(msg => {
-                        const isSent = msg.sender === username;
-                        const msgDiv = document.createElement('div');
-                        msgDiv.className = isSent ? 'message sent' : 'message received';
-                        
-                        let content = `
-                            <div class="msg-header">
-                                <strong>${msg.sender}</strong>
-                                <span>${msg.time}</span>
-                            </div>`;
-                        
-                        if (msg.type === 'image') {
-                            content += `<img src="${msg.content}" class="image-message" alt="Sent photo">`;
-                        } else {
-                            content += `<div class="msg-text">${msg.text}</div>`;
-                        }
-                        
-                        msgDiv.innerHTML = content;
-                        chatContainer.appendChild(msgDiv);
-                    });
-                    
-                    // Auto-scroll if near bottom
-                    const threshold = 100;
-                    const shouldScroll = chatContainer.scrollTop > chatContainer.scrollHeight - chatContainer.clientHeight - threshold;
-                    if (shouldScroll) {
-                        setTimeout(() => {
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
-                        }, 50);
-                    }
+                    chatContainer.innerHTML = messages.map(msg => `
+                        <div class="message ${msg.sender === username ? 'sent' : 'received'}">
+                            <strong>${msg.sender}</strong>: ${msg.text}
+                        </div>
+                    `).join('');
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
                 });
         }
-        
+
         function sendMessage() {
             const message = messageInput.value.trim();
             if (!message) return;
-            
+
             fetch("/send", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    message: message,
-                    type: 'text'
-                })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to send');
+                body: JSON.stringify({ message })
+            }).then(() => {
                 messageInput.value = '';
                 loadMessages();
-            })
-            .catch(error => {
-                console.error("Error:", error);
-            });
-            
-            // Close keyboard on mobile after sending
-            if ('virtualKeyboard' in navigator) {
-                navigator.virtualKeyboard.hide();
-            } else {
-                messageInput.blur();
-            }
-        }
-        
-        function sendPhoto(imageData) {
-            fetch("/send", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    content: imageData,
-                    type: 'image'
-                })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to send photo');
-                loadMessages();
-            })
-            .catch(error => {
-                console.error("Error sending photo:", error);
-                alert("Failed to send photo. Please try again.");
+                if (isMobile()) messageInput.blur();
             });
         }
-        
+
         // Video Call Functions
         async function startVideoCall() {
             try {
+                // Get local media stream with mobile-optimized constraints
                 const constraints = {
-                    video: { 
-                        width: 160, 
-                        height: 120,
-                        facingMode: currentFacingMode
-                    }, 
-                    audio: true 
+                    audio: true,
+                    video: {
+                        facingMode: currentFacingMode,
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        frameRate: { ideal: 24 }
+                    }
                 };
-                
-                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                localStream = await navigator.mediaDevices.getUserMedia(constraints)
+                    .catch(err => {
+                        // Fallback for older devices
+                        console.warn("Primary constraints failed, trying fallback", err);
+                        return navigator.mediaDevices.getUserMedia({
+                            audio: true,
+                            video: { facingMode: currentFacingMode }
+                        });
+                    });
+
                 localVideo.srcObject = localStream;
+
+                // Create peer connection
+                peerConnection = new RTCPeerConnection(configuration);
+
+                // Add local stream to connection
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+
+                // Set up remote stream
+                peerConnection.ontrack = event => {
+                    if (!remoteVideo.srcObject) {
+                        remoteVideo.srcObject = event.streams[0];
+                    }
+                };
+
+                // Handle ICE candidates
+                peerConnection.onicecandidate = event => {
+                    if (event.candidate) {
+                        // Send candidate to remote peer (implementation needed)
+                        console.log("New ICE candidate:", event.candidate);
+                    }
+                };
+
+                // Handle connection state changes
+                peerConnection.onconnectionstatechange = () => {
+                    if (peerConnection.connectionState === "disconnected") {
+                        endVideoCall();
+                    }
+                };
+
+                // Create offer
+                const offer = await peerConnection.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
+                await peerConnection.setLocalDescription(offer);
+
+                // Send offer to remote peer (implementation needed)
+                console.log("Created offer:", offer);
+
+                // Update UI
                 startCallBtn.style.display = 'none';
                 endCallBtn.style.display = 'block';
                 switchCameraBtn.style.display = 'block';
-                capturePhotoBtn.style.display = 'block';
+
             } catch (error) {
-                console.error("Error accessing media:", error);
-                alert("Please enable camera and microphone permissions");
+                console.error("Error starting call:", error);
+                alert("Could not access camera/microphone. Please check permissions and try again.");
             }
         }
-        
+
         async function switchCamera() {
             if (!localStream) return;
-            
-            // Stop all tracks
-            localStream.getTracks().forEach(track => track.stop());
-            
-            // Toggle facing mode
-            currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-            
+
             try {
+                // Stop current video tracks
+                localStream.getVideoTracks().forEach(track => track.stop());
+
+                // Toggle camera mode
+                currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+
+                // Get new video stream with mobile-optimized constraints
                 const constraints = {
-                    video: { 
-                        width: 160, 
-                        height: 120,
-                        facingMode: currentFacingMode
-                    }, 
-                    audio: true 
+                    video: {
+                        facingMode: currentFacingMode,
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
                 };
-                
-                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                const newVideoTrack = stream.getVideoTracks()[0];
+
+                // Replace video track in peer connection
+                const sender = peerConnection.getSenders().find(s => s.track.kind === "video");
+                await sender.replaceTrack(newVideoTrack);
+
+                // Update local video display
+                localStream.addTrack(newVideoTrack);
+                localVideo.srcObject = null;
                 localVideo.srcObject = localStream;
+
+                // Stop the unused audio tracks if any
+                stream.getAudioTracks().forEach(track => track.stop());
+
             } catch (error) {
                 console.error("Error switching camera:", error);
                 alert("Failed to switch camera. Please try again.");
             }
         }
-        
-        function capturePhoto() {
-            if (!localStream) return;
-            
-            // Set canvas size to video size
-            photoCanvas.width = localVideo.videoWidth;
-            photoCanvas.height = localVideo.videoHeight;
-            
-            // Draw current video frame to canvas
-            photoContext.drawImage(localVideo, 0, 0, photoCanvas.width, photoCanvas.height);
-            
-            // Convert to data URL
-            const imageData = photoCanvas.toDataURL('image/jpeg', 0.8);
-            sendPhoto(imageData);
-        }
-        
+
         function endVideoCall() {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localVideo.srcObject = null;
+            try {
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localVideo.srcObject = null;
+                }
+                if (remoteVideo.srcObject) {
+                    remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+                    remoteVideo.srcObject = null;
+                }
+                if (peerConnection) {
+                    peerConnection.close();
+                }
+            } catch (error) {
+                console.error("Error ending call:", error);
             }
-            if (remoteVideo.srcObject) {
-                remoteVideo.srcObject = null;
-            }
+
             startCallBtn.style.display = 'block';
             endCallBtn.style.display = 'none';
             switchCameraBtn.style.display = 'none';
-            capturePhotoBtn.style.display = 'none';
         }
-        
+
         // Event Listeners
         startCallBtn.addEventListener('click', startVideoCall);
         endCallBtn.addEventListener('click', endVideoCall);
         switchCameraBtn.addEventListener('click', switchCamera);
-        capturePhotoBtn.addEventListener('click', capturePhoto);
-        
+        sendBtn.addEventListener('click', sendMessage);
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
-        
-        sendBtn.addEventListener('click', sendMessage);
-        
-        photoBtn.addEventListener('click', () => {
-            photoInput.click();
-        });
-        
-        photoInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                sendPhoto(event.target.result);
-            };
-            reader.readAsDataURL(file);
-            
-            // Reset input to allow selecting same file again
-            photoInput.value = '';
-        });
-        
-        uploadBtn.addEventListener('click', () => {
-            uploadInput.click();
-        });
-        
-        uploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                sendPhoto(event.target.result);
-            };
-            reader.readAsDataURL(file);
-            
-            // Reset input to allow selecting same file again
-            uploadInput.value = '';
-        });
-        
-        // Prevent double-tap zoom
-        let lastTap = 0;
-        document.addEventListener('touchend', function(e) {
-            const now = Date.now();
-            if (now - lastTap < 300) {
-                e.preventDefault();
-            }
-            lastTap = now;
-        }, { passive: false });
+
+        // Prevent default zoom behavior
+        document.addEventListener('gesturestart', e => e.preventDefault());
     </script>
 </body>
 </html>
