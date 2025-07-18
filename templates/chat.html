@@ -252,6 +252,27 @@
             justify-content: center;
         }
         
+        .upload-btn {
+            background: var(--success);
+            color: var(--white);
+            margin-right: 8px;
+            padding: 0 12px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #uploadInput {
+            display: none;
+        }
+        
         .user-display {
             position: absolute;
             bottom: 2px;
@@ -319,7 +340,7 @@
             <button id="startCallBtn">Start</button>
             <button id="endCallBtn">End</button>
             <button id="switchCameraBtn">Switch</button>
-            <button id="capturePhotoBtn">Photo</button>
+            <button id="capturePhotoBtn">Capture</button>
         </div>
     </div>
 
@@ -330,8 +351,10 @@
     </div>
 
     <div class="input-area">
-        <input type="file" id="photoInput" accept="image/*" capture="environment">
+        <input type="file" id="photoInput" accept="image/*" capture="user">
         <button class="photo-btn" id="photoBtn">📷</button>
+        <input type="file" id="uploadInput" accept="image/*">
+        <button class="upload-btn" id="uploadBtn">📁</button>
         <input type="text" id="messageInput" placeholder="Type a message..." autocapitalize="sentences">
         <button id="sendBtn">Send</button>
     </div>
@@ -355,6 +378,8 @@
         const sendBtn = document.getElementById('sendBtn');
         const photoBtn = document.getElementById('photoBtn');
         const photoInput = document.getElementById('photoInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadInput = document.getElementById('uploadInput');
         
         // Disable zooming
         document.addEventListener('gesturestart', function(e) {
@@ -456,6 +481,7 @@
             })
             .catch(error => {
                 console.error("Error sending photo:", error);
+                alert("Failed to send photo. Please try again.");
             });
         }
         
@@ -506,6 +532,7 @@
                 localVideo.srcObject = localStream;
             } catch (error) {
                 console.error("Error switching camera:", error);
+                alert("Failed to switch camera. Please try again.");
             }
         }
         
@@ -566,6 +593,24 @@
             
             // Reset input to allow selecting same file again
             photoInput.value = '';
+        });
+        
+        uploadBtn.addEventListener('click', () => {
+            uploadInput.click();
+        });
+        
+        uploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                sendPhoto(event.target.result);
+            };
+            reader.readAsDataURL(file);
+            
+            // Reset input to allow selecting same file again
+            uploadInput.value = '';
         });
         
         // Prevent double-tap zoom
