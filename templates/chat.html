@@ -2,18 +2,16 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Chat | {{ username }}</title>
+    <title>Chat | {{ username }}</title>
     <style>
         :root {
             --primary: #ff6b6b;
-            --primary-dark: #e05555;
             --secondary: #007bff;
             --danger: #f44336;
             --text: #333;
             --light: #f5f5f5;
             --white: #ffffff;
             --gray: #495057;
-            --light-gray: #e0e0e0;
             --sent-msg: #dcf8c6;
             --received-msg: #ffffff;
         }
@@ -33,19 +31,17 @@
             color: var(--text);
         }
         
-        header {
+        .header {
             background: var(--primary);
             color: var(--white);
-            padding: 1rem;
-            text-align: center;
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             flex-shrink: 0;
         }
         
         .user-info {
-            background: var(--gray);
-            padding: 0.5rem 1rem;
-            color: var(--white);
-            text-align: right;
             font-size: 14px;
         }
         
@@ -55,91 +51,71 @@
             margin-left: 10px;
         }
         
-        .main-container {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            padding: 10px;
-            gap: 10px;
-        }
-        
-        .video-section {
-            flex: 3;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
         .video-container {
+            height: 10vh;
+            min-height: 80px;
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            flex: 1;
+            background: #000;
+            position: relative;
         }
         
         .video-frame {
-            flex: 1 1 45%;
-            min-width: 250px;
-            min-height: 200px;
-            border: 2px solid var(--light-gray);
-            border-radius: 8px;
-            background: var(--light);
-            display: flex;
-            flex-direction: column;
+            flex: 1;
+            position: relative;
             overflow: hidden;
         }
         
         .video-frame video {
             width: 100%;
             height: 100%;
-            background: #000;
-            flex-grow: 1;
             object-fit: cover;
         }
         
-        .video-header {
-            padding: 0.5rem;
-            background: var(--light-gray);
-            font-weight: bold;
-            text-align: center;
-            flex-shrink: 0;
-        }
-        
         .video-controls {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            padding: 10px;
-            background: var(--white);
-            flex-shrink: 0;
-            border-radius: 8px;
+            gap: 10px;
+            z-index: 10;
         }
         
-        .chat-section {
-            flex: 2;
-            min-width: 350px;
-            display: flex;
-            flex-direction: column;
-            background: var(--white);
-            border-radius: 8px;
-            overflow: hidden;
+        .video-controls button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        #startCallBtn {
+            background: var(--primary);
+            color: var(--white);
+        }
+        
+        #endCallBtn {
+            background: var(--danger);
+            color: var(--white);
+            display: none;
         }
         
         .chat-container {
             flex: 1;
             overflow-y: auto;
-            padding: 1rem;
+            padding: 10px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
         
         .message {
             max-width: 80%;
-            padding: 10px 15px;
+            padding: 8px 12px;
             border-radius: 12px;
             word-break: break-word;
+            font-size: 14px;
         }
         
         .sent {
@@ -152,173 +128,89 @@
             align-self: flex-start;
             background: var(--received-msg);
             border-bottom-left-radius: 4px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1);
         }
         
         .msg-header {
-            font-size: 0.8em;
+            font-size: 0.7em;
             color: var(--gray);
-            margin-bottom: 5px;
+            margin-bottom: 3px;
             display: flex;
             justify-content: space-between;
         }
         
-        .msg-text {
-            line-height: 1.4;
-        }
-        
         .input-area {
             display: flex;
-            padding: 10px;
+            padding: 8px;
             background: var(--white);
-            border-top: 1px solid var(--light-gray);
+            border-top: 1px solid #ddd;
             flex-shrink: 0;
         }
         
         #messageInput {
             flex-grow: 1;
-            padding: 10px;
-            border: 1px solid var(--light-gray);
-            border-radius: 20px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 15px;
             outline: none;
-            font-size: 16px;
-        }
-        
-        #messageInput:focus {
-            border-color: var(--primary);
-        }
-        
-        button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
+            font-size: 14px;
         }
         
         #sendBtn {
             background: var(--secondary);
             color: var(--white);
-            margin-left: 10px;
-        }
-        
-        #sendBtn:hover {
-            background: #0069d9;
-        }
-        
-        #startCallBtn {
-            background: var(--primary);
-            color: var(--white);
-        }
-        
-        #startCallBtn:hover {
-            background: var(--primary-dark);
-        }
-        
-        #endCallBtn {
-            background: var(--danger);
-            color: var(--white);
-        }
-        
-        #endCallBtn:hover {
-            background: #d32f2f;
-        }
-        
-        .user-list {
-            flex: 1;
-            max-width: 250px;
-            background: var(--white);
-            padding: 1rem;
-            border-radius: 8px;
-            overflow-y: auto;
-        }
-        
-        .user-list h3 {
-            margin-bottom: 1rem;
-            color: var(--gray);
-            font-size: 1.1rem;
-        }
-        
-        #userList {
-            list-style: none;
-        }
-        
-        #userList li {
-            padding: 8px 0;
-            border-bottom: 1px solid var(--light-gray);
+            margin-left: 8px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
             font-size: 14px;
         }
         
-        @media (max-width: 1024px) {
-            .main-container {
-                flex-direction: column;
-            }
-            
-            .user-list {
-                max-width: 100%;
-                order: -1;
-                margin-bottom: 10px;
-                max-height: 150px;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .video-container {
-                flex-direction: column;
-            }
-            
-            .video-frame {
-                min-height: 150px;
-            }
-            
-            .chat-section {
-                min-width: 100%;
-            }
+        .user-display {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            color: white;
+            font-size: 10px;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 5px;
+            border-radius: 3px;
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Video Chat App</h1>
+    <div class="header">
+        <h2>Video Chat</h2>
         <div class="user-info">
-            Logged in as: <strong>{{ username }}</strong> | 
+            <strong>{{ username }}</strong>
             <a href="/logout">Logout</a>
         </div>
-    </header>
+    </div>
 
-    <div class="main-container">
-        <div class="video-section">
-            <div class="video-container">
-                <div class="video-frame">
-                    <div class="video-header">You ({{ username }})</div>
-                    <video id="localVideo" autoplay playsinline muted></video>
-                </div>
-                <div class="video-frame">
-                    <div class="video-header">Partner</div>
-                    <video id="remoteVideo" autoplay playsinline></video>
-                </div>
-            </div>
-            <div class="video-controls">
-                <button id="startCallBtn">Start Call</button>
-                <button id="endCallBtn" disabled>End Call</button>
-            </div>
+    <div class="video-container">
+        <div class="video-frame">
+            <video id="localVideo" autoplay playsinline muted></video>
+            <div class="user-display">You</div>
         </div>
+        <div class="video-frame">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="user-display">Partner</div>
+        </div>
+        <div class="video-controls">
+            <button id="startCallBtn">Start Call</button>
+            <button id="endCallBtn">End Call</button>
+        </div>
+    </div>
 
-        <div class="chat-section">
-            <div class="chat-container" id="chatContainer">
-                <!-- Messages appear here -->
-            </div>
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Type your message...">
-                <button id="sendBtn">Send</button>
-            </div>
-        </div>
+    <div class="chat-container" id="chatContainer">
+        <!-- Messages appear here -->
+    </div>
 
-        <div class="user-list">
-            <h3>Online Users</h3>
-            <ul id="userList"></ul>
-        </div>
+    <div class="input-area">
+        <input type="text" id="messageInput" placeholder="Type your message...">
+        <button id="sendBtn">Send</button>
     </div>
 
     <script>
@@ -332,29 +224,17 @@
         const endCallBtn = document.getElementById('endCallBtn');
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const userList = document.getElementById('userList');
         
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             loadMessages();
-            loadUsers();
-            
-            // Set up intervals
             setInterval(loadMessages, 2000);
-            setInterval(loadUsers, 5000);
-            
-            // Auto-scroll chat to bottom
-            chatContainer.scrollTop = chatContainer.scrollHeight;
         });
         
         // Message Functions
         function loadMessages() {
             fetch("/get_messages")
-                .then(response => {
-                    if (!response.ok) throw new Error('Network error');
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(messages => {
                     chatContainer.innerHTML = '';
                     messages.forEach(msg => {
@@ -373,13 +253,10 @@
                         chatContainer.appendChild(msgDiv);
                     });
                     
-                    // Scroll to bottom if not at top
+                    // Auto-scroll if near bottom
                     if (chatContainer.scrollTop > chatContainer.scrollHeight - chatContainer.clientHeight - 100) {
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     }
-                })
-                .catch(error => {
-                    console.error('Error loading messages:', error);
                 });
         }
         
@@ -398,46 +275,22 @@
                 loadMessages();
             })
             .catch(error => {
-                console.error("Error sending message:", error);
-                alert("Failed to send message. Please try again.");
+                console.error("Error:", error);
             });
-        }
-        
-        // User List Functions
-        function loadUsers() {
-            fetch("/get_users")
-                .then(response => {
-                    if (!response.ok) throw new Error('Network error');
-                    return response.json();
-                })
-                .then(data => {
-                    userList.innerHTML = data.users
-                        .filter(user => user !== username)
-                        .map(user => `<li>${user}</li>`)
-                        .join('');
-                })
-                .catch(error => {
-                    console.error('Error loading users:', error);
-                });
         }
         
         // Video Call Functions
         async function startVideoCall() {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: true, 
+                    video: { width: 160, height: 120 }, 
                     audio: true 
                 });
                 localVideo.srcObject = localStream;
-                startCallBtn.disabled = true;
-                endCallBtn.disabled = false;
-                
-                // Here you would normally set up WebRTC connection
-                // with another user through your backend
+                startCallBtn.style.display = 'none';
+                endCallBtn.style.display = 'block';
             } catch (error) {
-                console.error("Error accessing media devices:", error);
-                alert("Could not access camera/microphone. Please check permissions.");
-                startCallBtn.disabled = false;
+                console.error("Error accessing media:", error);
             }
         }
         
@@ -446,23 +299,17 @@
                 localStream.getTracks().forEach(track => track.stop());
                 localVideo.srcObject = null;
             }
-            
-            if (remoteVideo.srcObject) {
-                remoteVideo.srcObject = null;
-            }
-            
-            startCallBtn.disabled = false;
-            endCallBtn.disabled = true;
+            startCallBtn.style.display = 'block';
+            endCallBtn.style.display = 'none';
         }
         
         // Event Listeners
         startCallBtn.addEventListener('click', startVideoCall);
         endCallBtn.addEventListener('click', endVideoCall);
-        sendBtn.addEventListener('click', sendMessage);
-        
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
     </script>
 </body>
 </html>
