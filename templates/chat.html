@@ -5,9 +5,10 @@
     <title>Chat | {{ username }}</title>
     <style>
         :root {
-            --primary: #ff6b6b;
+            --header-color: #2c3e50; /* Dark blue header */
+            --primary: #3498db; /* Blue accent */
             --secondary: #007bff;
-            --danger: #f44336;
+            --danger: #e74c3c;
             --text: #333;
             --light: #f5f5f5;
             --white: #ffffff;
@@ -41,7 +42,7 @@
         }
         
         .header {
-            background: var(--primary);
+            background: var(--header-color);
             color: var(--white);
             padding: 0 12px;
             display: flex;
@@ -129,7 +130,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            height: calc(60vh - var(--input-height)));
+            height: calc(60vh - var(--input-height));
         }
         
         .chat-container {
