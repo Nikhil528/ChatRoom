@@ -1,11 +1,17 @@
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'
+app.secret_key = 'your-secret-key-123'  # Change this for production
 
-# Store messages in memory
+# Mock database (replace with real database in production)
+users = {
+    'user1': generate_password_hash('password1'),
+    'user2': generate_password_hash('password2')
+}
+
 messages = []
-# Store active users (for demonstration)
 active_users = set()
 
 @app.route('/')
@@ -15,12 +21,20 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        if username and username.strip():
-            session['username'] = username.strip()
-            active_users.add(username.strip())
-            return redirect(url_for('chat'))
-        return render_template('login.html', error='Please enter a username')
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        
+        if not username or not password:
+            return jsonify({'success': False, 'message': 'Both fields are required'}), 400
+            
+        if username not in users or not check_password_hash(users[username], password):
+            return jsonify({'success': False, 'message': 'Invalid username or password'}), 401
+            
+        session['username'] = username
+        active_users.add(username)
+        return jsonify({'success': True, 'redirect': url_for('chat')})
+    
     return render_template('login.html')
 
 @app.route('/chat')
@@ -39,26 +53,32 @@ def logout():
 @app.route('/send', methods=['POST'])
 def send_message():
     if 'username' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
         
-    data = request.json
-    if not data or 'message' not in data:
-        return jsonify({'error': 'Invalid data'}), 400
+    data = request.get_json()
+    message = data.get('message', '').strip()
+    
+    if not message:
+        return jsonify({'success': False, 'message': 'Message cannot be empty'}), 400
     
     messages.append({
         'sender': session['username'],
-        'text': data['message'],
+        'text': message,
         'time': datetime.now().strftime('%H:%M:%S')
     })
-    return jsonify({'status': 'success'})
+    return jsonify({'success': True})
 
-@app.route('/get_messages', methods=['GET'])
+@app.route('/get_messages')
 def get_messages():
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
     return jsonify(messages)
 
-@app.route('/get_users', methods=['GET'])
+@app.route('/get_users')
 def get_users():
-    return jsonify(list(active_users))
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    return jsonify({'users': list(active_users)})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
