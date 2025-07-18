@@ -164,28 +164,104 @@ header {
     font-weight: bold;
 }
 
-.video-call-controls {
-    text-align: center;
-    margin: 10px 0;
+body.chat-page {
+    font-family: Arial, sans-serif;
+    background-color: #f2f2f2;
+    margin: 0;
+    padding: 0;
 }
 
-.video-call-controls button {
-    margin: 0 5px;
-    padding: 10px 20px;
-    font-weight: bold;
-}
-
-.video-call-container {
+header {
+    background-color: #6200ea;
+    color: white;
+    padding: 1rem;
     display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin: 10px 0;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-container {
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    background: white;
+    border-bottom: 1px solid #ccc;
+}
+
+.input-area {
+    display: flex;
+    padding: 1rem;
+    background-color: #fff;
+    border-top: 1px solid #ccc;
+}
+
+.input-area input {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 1rem;
+    margin-right: 0.5rem;
+}
+
+.input-area button {
+    padding: 0.5rem 1rem;
+    background-color: #6200ea;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.message {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border-radius: 10px;
+    max-width: 60%;
+}
+
+.sent {
+    background-color: #d1e7dd;
+    align-self: flex-end;
+}
+
+.received {
+    background-color: #f8d7da;
+    align-self: flex-start;
+}
+
+.msg-header {
+    font-size: 0.8rem;
+    color: #555;
+    display: flex;
+    justify-content: space-between;
+}
+
+.video-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 1rem auto;
+    padding: 1rem;
+    background-color: #fff;
+    border: 1px solid #ccc;
 }
 
 video {
-    width: 45%;
-    height: auto;
-    border: 2px solid #ccc;
+    width: 100%;
+    max-width: 500px;
+    margin: 0.5rem 0;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+}
+
+.video-controls {
+    margin-top: 0.5rem;
+}
+
+.video-controls button {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    background-color: #03a9f4;
+    color: white;
+    border: none;
     border-radius: 5px;
-    background: black;
+    cursor: pointer;
 }
