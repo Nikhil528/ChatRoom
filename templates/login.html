@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="manifest" href="/manifest.json">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Video Chat App</title>
+    <title>Chat | {{ username }}</title>
     <style>
         :root {
             --header-color: #2c3e50;
@@ -12,6 +11,7 @@
             --secondary: #007bff;
             --danger: #e74c3c;
             --success: #2ecc71;
+            --warning: #f39c12;
             --text: #333;
             --light: #f5f5f5;
             --white: #ffffff;
@@ -42,7 +42,6 @@
             flex-direction: column;
             background: var(--light);
             color: var(--text);
-            -webkit-overflow-scrolling: touch;
         }
         
         .header {
@@ -54,6 +53,26 @@
             align-items: center;
             height: var(--header-height);
             flex-shrink: 0;
+        }
+        
+        .header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .user-info {
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        
+        .user-info a {
+            color: var(--white);
+            text-decoration: none;
+            margin-left: 8px;
+            font-size: 13px;
         }
         
         .video-container {
@@ -75,7 +94,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: rotateY(180deg); /* Mirror effect for front camera */
         }
         
         .video-controls {
@@ -89,56 +107,267 @@
         }
         
         .video-controls button {
-            padding: 6px 14px;
+            padding: 4px 12px;
             border: none;
-            border-radius: 15px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
+            height: 24px;
         }
         
-        #startCallBtn { background: var(--primary); color: var(--white); }
-        #endCallBtn { background: var(--danger); color: var(--white); display: none; }
-        #switchCameraBtn { background: var(--gray); color: var(--white); display: none; }
+        #startCallBtn {
+            background: var(--primary);
+            color: var(--white);
+            display: block;
+        }
+        
+        #endCallBtn {
+            background: var(--danger);
+            color: var(--white);
+            display: none;
+        }
+        
+        #switchCameraBtn {
+            background: var(--gray);
+            color: var(--white);
+            display: none;
+        }
+        
+        #capturePhotoBtn {
+            background: var(--success);
+            color: var(--white);
+            display: none;
+        }
         
         .chat-area {
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            height: calc(60vh - var(--input-height));
         }
         
         .chat-container {
             flex: 1;
             overflow-y: auto;
-            padding: 10px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
             -webkit-overflow-scrolling: touch;
+        }
+        
+        .message {
+            max-width: 85%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            word-break: break-word;
+            font-size: 14px;
+            line-height: 1.3;
+        }
+        
+        .sent {
+            align-self: flex-end;
+            background: var(--sent-msg);
+            border-bottom-right-radius: 4px;
+        }
+        
+        .received {
+            align-self: flex-start;
+            background: var(--received-msg);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+        }
+        
+        .msg-header {
+            font-size: 11px;
+            color: var(--gray);
+            margin-bottom: 2px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .msg-text {
+            font-size: 14px;
+        }
+        
+        .image-message {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-top: 5px;
         }
         
         .input-area {
             display: flex;
-            padding: 10px;
+            padding: 8px;
             background: var(--white);
             border-top: 1px solid #ddd;
             height: var(--input-height);
+            flex-shrink: 0;
+            align-items: center;
         }
         
         #messageInput {
-            flex: 1;
-            padding: 10px;
+            flex-grow: 1;
+            padding: 8px 12px;
             border: 1px solid #ddd;
-            border-radius: 20px;
+            border-radius: 15px;
+            outline: none;
             font-size: 14px;
+            min-height: 40px;
         }
         
         #sendBtn {
             background: var(--secondary);
             color: var(--white);
-            border: none;
-            border-radius: 20px;
-            padding: 0 15px;
             margin-left: 8px;
+            padding: 0 12px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
             font-weight: 600;
+            font-size: 14px;
+            min-width: 60px;
+            height: 40px;
+        }
+        
+        #photoInput {
+            display: none;
+        }
+        
+        .photo-btn {
+            background: var(--primary);
+            color: var(--white);
+            margin-right: 8px;
+            padding: 0 12px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .upload-btn {
+            background: var(--success);
+            color: var(--white);
+            margin-right: 8px;
+            padding: 0 12px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #uploadInput {
+            display: none;
+        }
+        
+        .user-display {
+            position: absolute;
+            bottom: 2px;
+            left: 4px;
+            color: white;
+            font-size: 9px;
+            background: rgba(0,0,0,0.5);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+        
+        .error-message {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--danger);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 1000;
+            animation: fadeInOut 3s forwards;
+            display: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 80%;
+            text-align: center;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .loading-spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary);
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --header-height: 45px;
+                --input-height: 55px;
+            }
+            
+            .header h2 {
+                font-size: 16px;
+            }
+            
+            .user-info {
+                font-size: 12px;
+            }
+            
+            .video-container {
+                min-height: 100px;
+            }
+            
+            .message {
+                max-width: 90%;
+                padding: 6px 10px;
+            }
+            
+            .msg-text {
+                font-size: 13px;
+            }
+            
+            .image-message {
+                max-width: 150px;
+                max-height: 150px;
+            }
         }
     </style>
 </head>
@@ -154,199 +383,255 @@
     <div class="video-container">
         <div class="video-frame">
             <video id="localVideo" autoplay playsinline muted></video>
+            <div class="user-display">You</div>
         </div>
         <div class="video-frame">
             <video id="remoteVideo" autoplay playsinline></video>
+            <div class="user-display">Partner</div>
         </div>
         <div class="video-controls">
-            <button id="startCallBtn">Start Call</button>
-            <button id="endCallBtn">End Call</button>
-            <button id="switchCameraBtn">Switch Camera</button>
+            <button id="startCallBtn">Start</button>
+            <button id="endCallBtn">End</button>
+            <button id="switchCameraBtn">Switch</button>
+            <button id="capturePhotoBtn">Capture</button>
         </div>
     </div>
 
     <div class="chat-area">
         <div class="chat-container" id="chatContainer">
-            <!-- Messages will appear here -->
-        </div>
-        <div class="input-area">
-            <input type="text" id="messageInput" placeholder="Type a message...">
-            <button id="sendBtn">Send</button>
+            <!-- Messages appear here -->
         </div>
     </div>
 
+    <div class="input-area">
+        <input type="file" id="photoInput" accept="image/*" capture="user">
+        <button class="photo-btn" id="photoBtn">📷</button>
+        <input type="file" id="uploadInput" accept="image/*">
+        <button class="upload-btn" id="uploadBtn">📁</button>
+        <input type="text" id="messageInput" placeholder="Type a message..." autocapitalize="sentences">
+        <button id="sendBtn">Send</button>
+    </div>
+
+    <div class="error-message" id="errorMessage"></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
     <script>
-        // WebRTC Configuration
-        const configuration = {
-            iceServers: [
-                { urls: "stun:stun.l.google.com:19302" },
-                { urls: "stun:stun1.l.google.com:19302" }
-            ]
-        };
-
-        let localStream;
-        let peerConnection;
-        let currentFacingMode = "user";
         const username = "{{ username }}";
-
+        let localStream;
+        let currentFacingMode = "user"; // front camera by default
+        let photoCanvas = document.createElement('canvas');
+        let photoContext = photoCanvas.getContext('2d');
+        
         // DOM Elements
         const localVideo = document.getElementById('localVideo');
         const remoteVideo = document.getElementById('remoteVideo');
         const startCallBtn = document.getElementById('startCallBtn');
         const endCallBtn = document.getElementById('endCallBtn');
         const switchCameraBtn = document.getElementById('switchCameraBtn');
+        const capturePhotoBtn = document.getElementById('capturePhotoBtn');
         const chatContainer = document.getElementById('chatContainer');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
-
+        const photoBtn = document.getElementById('photoBtn');
+        const photoInput = document.getElementById('photoInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadInput = document.getElementById('uploadInput');
+        const errorMessage = document.getElementById('errorMessage');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        // Disable zooming
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             loadMessages();
             setInterval(loadMessages, 2000);
+            
+            // Prevent keyboard from zooming on mobile
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                document.addEventListener('focusin', () => {
+                    window.scrollTo(0, 0);
+                });
+            }
         });
-
+        
         // Message Functions
         function loadMessages() {
             fetch("/get_messages")
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
                 .then(messages => {
-                    chatContainer.innerHTML = messages.map(msg => `
-                        <div class="message ${msg.sender === username ? 'sent' : 'received'}">
-                            <strong>${msg.sender}</strong>: ${msg.text}
-                        </div>
-                    `).join('');
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    chatContainer.innerHTML = '';
+                    messages.forEach(msg => {
+                        const isSent = msg.sender === username;
+                        const msgDiv = document.createElement('div');
+                        msgDiv.className = isSent ? 'message sent' : 'message received';
+                        
+                        let content = `
+                            <div class="msg-header">
+                                <strong>${msg.sender}</strong>
+                                <span>${msg.time}</span>
+                            </div>`;
+                        
+                        if (msg.type === 'image') {
+                            content += `<img src="${msg.content}" class="image-message" alt="Sent photo">`;
+                        } else {
+                            content += `<div class="msg-text">${msg.text}</div>`;
+                        }
+                        
+                        msgDiv.innerHTML = content;
+                        chatContainer.appendChild(msgDiv);
+                    });
+                    
+                    // Auto-scroll if near bottom
+                    const threshold = 100;
+                    const shouldScroll = chatContainer.scrollTop > chatContainer.scrollHeight - chatContainer.clientHeight - threshold;
+                    if (shouldScroll) {
+                        setTimeout(() => {
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }, 50);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error loading messages:", error);
+                    showError("Failed to load messages. Please refresh the page.");
                 });
         }
-
+        
         function sendMessage() {
             const message = messageInput.value.trim();
             if (!message) return;
-
+            
             fetch("/send", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message })
-            }).then(() => {
+                body: JSON.stringify({ 
+                    message: message,
+                    type: 'text'
+                })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to send message');
                 messageInput.value = '';
                 loadMessages();
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                showError("Failed to send message. Please try again.");
+            });
+            
+            // Close keyboard on mobile after sending
+            if ('virtualKeyboard' in navigator) {
+                navigator.virtualKeyboard.hide();
+            } else {
+                messageInput.blur();
+            }
+        }
+        
+        function sendPhoto(imageData) {
+            showLoading(true);
+            
+            // Check if image is too large (>1MB)
+            if (imageData.length > 1000000) {
+                imageData = compressImage(imageData);
+            }
+            
+            fetch("/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    content: imageData,
+                    type: 'image'
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.message || 'Failed to send photo');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                loadMessages();
+            })
+            .catch(error => {
+                console.error("Error sending photo:", error);
+                showError(error.message || "Failed to send photo. Please try again.");
+            })
+            .finally(() => {
+                showLoading(false);
             });
         }
-
+        
+        function compressImage(dataUrl) {
+            const img = new Image();
+            img.src = dataUrl;
+            
+            photoCanvas.width = img.width;
+            photoCanvas.height = img.height;
+            photoContext.drawImage(img, 0, 0);
+            
+            // Return compressed version (0.7 quality)
+            return photoCanvas.toDataURL('image/jpeg', 0.7);
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            
+            // Trigger animation
+            errorMessage.style.animation = 'none';
+            setTimeout(() => {
+                errorMessage.style.animation = 'fadeInOut 3s forwards';
+            }, 10);
+            
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        function showLoading(show) {
+            loadingOverlay.style.display = show ? 'flex' : 'none';
+        }
+        
         // Video Call Functions
         async function startVideoCall() {
             try {
-                // Get local media stream
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: currentFacingMode },
-                    audio: true
-                });
+                const constraints = {
+                    video: { 
+                        width: 160, 
+                        height: 120,
+                        facingMode: currentFacingMode
+                    }, 
+                    audio: true 
+                };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 localVideo.srcObject = localStream;
-
-                // Create peer connection
-                peerConnection = new RTCPeerConnection(configuration);
-
-                // Add local stream to connection
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-
-                // Set up remote stream
-                peerConnection.ontrack = event => {
-                    remoteVideo.srcObject = event.streams[0];
-                };
-
-                // Handle ICE candidates
-                peerConnection.onicecandidate = event => {
-                    if (event.candidate) {
-                        // Send candidate to remote peer (implementation needed)
-                    }
-                };
-
-                // Create offer
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-
-                // Send offer to remote peer (implementation needed)
-
-                // Update UI
                 startCallBtn.style.display = 'none';
                 endCallBtn.style.display = 'block';
                 switchCameraBtn.style.display = 'block';
-
+                capturePhotoBtn.style.display = 'block';
             } catch (error) {
-                console.error("Error starting call:", error);
-                alert("Could not access camera/microphone. Please check permissions.");
+                console.error("Error accessing media:", error);
+                showError("Please enable camera and microphone permissions");
             }
         }
-
+        
         async function switchCamera() {
             if (!localStream) return;
-
-            // Stop current video tracks
-            localStream.getVideoTracks().forEach(track => track.stop());
-
-            // Toggle camera mode
-            currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-
+            
             try {
-                // Get new video stream
-                const newStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: currentFacingMode },
-                    audio: true
-                });
-
-                // Replace video track
-                const videoTrack = newStream.getVideoTracks()[0];
-                const sender = peerConnection.getSenders().find(s => s.track.kind === "video");
-                await sender.replaceTrack(videoTrack);
-
-                // Update local video
-                localStream.getVideoTracks().forEach(track => track.stop());
-                localStream.addTrack(videoTrack);
-                localVideo.srcObject = null;
-                localVideo.srcObject = localStream;
-
-                // Stop the unused audio tracks
-                newStream.getAudioTracks().forEach(track => track.stop());
-
-            } catch (error) {
-                console.error("Error switching camera:", error);
-            }
-        }
-
-        function endVideoCall() {
-            if (localStream) {
+                showLoading(true);
+                // Stop all tracks
                 localStream.getTracks().forEach(track => track.stop());
-                localVideo.srcObject = null;
-            }
-            if (remoteVideo.srcObject) {
-                remoteVideo.srcObject.getTracks().forEach(track => track.stop());
-                remoteVideo.srcObject = null;
-            }
-            if (peerConnection) {
-                peerConnection.close();
-            }
-
-            startCallBtn.style.display = 'block';
-            endCallBtn.style.display = 'none';
-            switchCameraBtn.style.display = 'none';
-        }
-
-        // Event Listeners
-        startCallBtn.addEventListener('click', startVideoCall);
-        endCallBtn.addEventListener('click', endVideoCall);
-        switchCameraBtn.addEventListener('click', switchCamera);
-        sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
-
-        // Prevent zooming
-        document.addEventListener('gesturestart', e => e.preventDefault());
-        document.addEventListener('touchmove', e => {
-            if (e.scale !== 1) e.preventDefault();
-        }, { passive: false });
-    </script>
-</body>
-</html>
+                
+                // Toggle facing mode
+                current
