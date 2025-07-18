@@ -1,161 +1,174 @@
 <!doctype html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <video id="localVideo" autoplay muted></video>
-<video id="remoteVideo" autoplay></video>
-    <title>Chat Room</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Room Video Call + Chat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='Style.css') }}">
 </head>
-<body class="chat-page">
-    <header>
-        <h1>I ❤️ U</h1>
-        <div class="user-info">
-            Logged in as: <strong>{{ username }}</strong>
-            <a href="/logout">Logout</a>
-        </div>
-    </header>
+<body>
+  <header>
+    <h1>I ❤️ U</h1>
+    <div class="user-info">
+      Logged in as: <strong>{{ username }}</strong>
+      <a href="/logout">Logout</a>
+    </div>
+  </header>
 
+  <div class="main-container">
     <div class="chat-container" id="chatContainer"></div>
 
     <div class="input-area">
-        <input type="text" id="messageInput" placeholder="Type your message..." />
-        <button onclick="sendMessage()">Send</button>
+      <input type="text" id="messageInput" placeholder="Type your message..." />
+      <button onclick="sendMessage()">Send</button>
     </div>
 
-    <!-- Video Call Section -->
     <div class="video-container">
-        <video id="localVideo" autoplay muted></video>
-        <video id="remoteVideo" autoplay></video>
-        <div class="video-controls">
-            <button id="startCallBtn">Start Call</button>
-        </div>
+      <video id="localVideo" autoplay muted playsinline></video>
+      <video id="remoteVideo" autoplay playsinline></video>
+      <div class="video-controls">
+        <button id="startCallBtn">Start Call</button>
+      </div>
     </div>
+  </div>
 
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script>
-        const username = "{{ username }}";
-        const roomId = "main-room"; // Static room ID (you can generate dynamically)
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const username = "{{ username }}";
+    const roomId = "main-room";
 
-        const socket = io({ query: { username } });
+    const socket = io({ query: { username } });
+    socket.emit("join", roomId);
 
-        const localVideo = document.getElementById("localVideo");
-        const remoteVideo = document.getElementById("remoteVideo");
-        const startCallBtn = document.getElementById("startCallBtn");
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+    const startCallBtn = document.getElementById("startCallBtn");
 
-        let localStream;
-        let peerConnection;
-        const config = {
-            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        };
+    let localStream;
+    let remoteStream = new MediaStream();
+    let peerConnection;
 
-        // Join signaling room
-        socket.emit("join", roomId);
+    const servers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
-        async function getMediaStream() {
-            localStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
-            });
-            localVideo.srcObject = localStream;
+    async function startLocalStream() {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = localStream;
+      remoteVideo.srcObject = remoteStream;
+    }
+
+    function createPeerConnection() {
+      peerConnection = new RTCPeerConnection(servers);
+
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.ontrack = event => {
+        event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+      };
+
+      peerConnection.onicecandidate = event => {
+        if (event.candidate) {
+          socket.emit("candidate", { room: roomId, candidate: event.candidate });
         }
+      };
 
-        async function createPeerConnection() {
-            peerConnection = new RTCPeerConnection(config);
+      peerConnection.onconnectionstatechange = () => {
+        console.log("Connection state:", peerConnection.connectionState);
+      };
+    }
 
-            peerConnection.onicecandidate = event => {
-                if (event.candidate) {
-                    socket.emit("candidate", { room: roomId, candidate: event.candidate });
-                }
-            };
-
-            peerConnection.ontrack = event => {
-                remoteVideo.srcObject = event.streams[0];
-            };
-
-            if (localStream) {
-                localStream.getTracks().forEach(track =>
-                    peerConnection.addTrack(track, localStream)
-                );
-            }
+    function setupNegotiationNeeded() {
+      peerConnection.onnegotiationneeded = async () => {
+        try {
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+          socket.emit("offer", { room: roomId, offer: peerConnection.localDescription });
+        } catch (e) {
+          console.error(e);
         }
+      };
+    }
 
-        async function startCall() {
-            await getMediaStream();
-            await createPeerConnection();
+    async function startCall() {
+      await startLocalStream();
+      createPeerConnection();
+      setupNegotiationNeeded();
+    }
 
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            socket.emit("offer", { room: roomId, offer });
+    startCallBtn.addEventListener("click", () => {
+      if (!peerConnection) {
+        startCall();
+      }
+    });
+
+    socket.on("offer", async ({ offer }) => {
+      if (!peerConnection) {
+        await startLocalStream();
+        createPeerConnection();
+      }
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+      socket.emit("answer", { room: roomId, answer: peerConnection.localDescription });
+    });
+
+    socket.on("answer", async ({ answer }) => {
+      if (peerConnection) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+      }
+    });
+
+    socket.on("candidate", async ({ candidate }) => {
+      if (peerConnection) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error("Error adding ICE candidate", e);
         }
+      }
+    });
 
-        startCallBtn.addEventListener("click", startCall);
-
-        socket.on("offer", async ({ offer }) => {
-            await getMediaStream();
-            await createPeerConnection();
-
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            socket.emit("answer", { room: roomId, answer });
+    // Chat functions
+    function loadMessages() {
+      fetch("/get_messages")
+        .then(res => res.json())
+        .then(messages => {
+          const container = document.getElementById("chatContainer");
+          container.innerHTML = "";
+          messages.forEach(msg => {
+            const div = document.createElement("div");
+            div.className = msg.sender === username ? "message sent" : "message received";
+            div.innerHTML = `
+              <div class="msg-header">
+                <strong>${msg.sender}</strong> <span>${msg.time}</span>
+              </div>
+              <div class="msg-text">${msg.text}</div>
+            `;
+            container.appendChild(div);
+          });
+          container.scrollTop = container.scrollHeight;
         });
+    }
 
-        socket.on("answer", async ({ answer }) => {
-            if (peerConnection) {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            }
+    function sendMessage() {
+      const input = document.getElementById("messageInput");
+      const message = input.value.trim();
+      if (message) {
+        fetch("/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        }).then(() => {
+          input.value = "";
+          loadMessages();
         });
+      }
+    }
 
-        socket.on("candidate", async ({ candidate }) => {
-            if (peerConnection) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            }
-        });
+    setInterval(loadMessages, 2000);
+    window.onload = loadMessages;
 
-        // Chat functionality
-        function loadMessages() {
-            fetch("/get_messages")
-                .then((res) => res.json())
-                .then((messages) => {
-                    const container = document.getElementById("chatContainer");
-                    container.innerHTML = "";
-                    messages.forEach((msg) => {
-                        const msgDiv = document.createElement("div");
-                        msgDiv.className = msg.sender === username ? "message sent" : "message received";
-                        msgDiv.innerHTML = `
-                            <div class="msg-header">
-                                <strong>${msg.sender}</strong>
-                                <span>${msg.time}</span>
-                            </div>
-                            <div class="msg-text">${msg.text}</div>
-                        `;
-                        container.appendChild(msgDiv);
-                    });
-                    container.scrollTop = container.scrollHeight;
-                });
-        }
-
-        function sendMessage() {
-            const input = document.getElementById("messageInput");
-            const message = input.value.trim();
-            if (message) {
-                fetch("/send", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message }),
-                }).then(() => {
-                    input.value = "";
-                    loadMessages();
-                });
-            }
-        }
-
-        setInterval(loadMessages, 2000);
-        window.onload = loadMessages;
-
-        document.getElementById("messageInput").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") sendMessage();
-        });
-    </script>
+    document.getElementById("messageInput").addEventListener("keypress", e => {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
 </body>
 </html>
