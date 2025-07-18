@@ -2,104 +2,137 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Chat</title>
+    <title>Video Chat Login</title>
     <style>
-        /* (Keep all your existing CSS styles) */
-        /* ... */
+        :root {
+            --primary: #ff6b6b;
+            --primary-dark: #e05555;
+            --text: #333;
+            --light: #f5f5f5;
+            --white: #ffffff;
+            --error: #e74c3c;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        .login-container {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        button {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 1rem;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: var(--primary-dark);
+        }
+        
+        .error {
+            color: var(--error);
+            margin-top: 1rem;
+            font-size: 14px;
+            min-height: 20px;
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 0 20px;
+                padding: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- (Keep all your existing HTML structure) -->
-    <!-- ... -->
+    <div class="login-container">
+        <h1>Video Chat Login</h1>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <div id="error" class="error"></div>
+    </div>
 
     <script>
-        const username = "{{ username }}";
-        let localStream;
-
-        // DOM elements
-        const localVideo = document.getElementById('localVideo');
-        const startCallBtn = document.getElementById('startCallBtn');
-        const endCallBtn = document.getElementById('endCallBtn');
-
-        // Message functions
-        function loadMessages() {
-            fetch("/get_messages")
-                .then(response => response.json())
-                .then(messages => {
-                    const container = document.getElementById('chatContainer');
-                    container.innerHTML = '';
-                    messages.forEach(msg => {
-                        const msgDiv = document.createElement('div');
-                        msgDiv.className = msg.sender === username ? 'message sent' : 'message received';
-                        msgDiv.innerHTML = `
-                            <div class="msg-header">
-                                <strong>${msg.sender}</strong>
-                                <span>${msg.time}</span>
-                            </div>
-                            <div class="msg-text">${msg.text}</div>
-                        `;
-                        container.appendChild(msgDiv);
-                    });
-                    container.scrollTop = container.scrollHeight;
-                })
-                .catch(error => console.error("Error loading messages:", error));
-        }
-
-        function sendMessage() {
-            const message = document.getElementById('messageInput').value.trim();
-            if (!message) return;
-
-            fetch("/send", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to send');
-                document.getElementById('messageInput').value = '';
-                loadMessages();
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                alert("Failed to send message");
-            });
-        }
-
-        // Video call functions
-        startCallBtn.addEventListener('click', async () => {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: true, 
-                    audio: true 
-                });
-                localVideo.srcObject = localStream;
-                startCallBtn.disabled = true;
-                endCallBtn.disabled = false;
-            } catch (error) {
-                console.error("Error accessing media:", error);
-                alert("Could not access camera/microphone");
-            }
-        });
-
-        endCallBtn.addEventListener('click', () => {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localVideo.srcObject = null;
-            }
-            startCallBtn.disabled = false;
-            endCallBtn.disabled = true;
-        });
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            loadMessages();
-            setInterval(loadMessages, 2000);
+        const form = document.getElementById('loginForm');
+        const errorDiv = document.getElementById('error');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorDiv.textContent = '';
             
-            // Send message on Enter
-            document.getElementById('messageInput')
-                .addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') sendMessage();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
                 });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    errorDiv.textContent = data.message || 'Login failed';
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Network error. Please try again.';
+            }
         });
     </script>
 </body>
