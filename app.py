@@ -1,55 +1,103 @@
-from flask import Flask, render_template, request, redirect, url_for, session
-from flask_socketio import SocketIO, emit, join_room
+from flask import Flask, render_template, request, redirect, session, jsonify
+import sqlite3
+import os  # ✅ required for file existence check
 
 app = Flask(__name__)
-app.secret_key = "secret"
-socketio = SocketIO(app)
+app.secret_key = 'your_secret_key'
 
-# --- Hardcoded Users ---
-USERS = {
-    "user1": "pass1",
-    "user2": "pass2"
-}
+# Initialize DB
+def init_db():
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+    # Create users table
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                username TEXT UNIQUE,
+                password TEXT)''')
 
-        if username in USERS and USERS[username] == password:
-            session["username"] = username
-            return redirect(url_for("chat"))
-        else:
-            return render_template("index.html", error="Invalid credentials")
+    # Create messages table
+    c.execute('''CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY,
+                sender TEXT,
+                receiver TEXT,
+                message TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
 
-    return render_template("index.html")
+    # Insert default users (only for demo)
+    try:
+        c.execute("INSERT INTO users (username, password) VALUES ('user1', 'Betu')")
+        c.execute("INSERT INTO users (username, password) VALUES ('user2', 'Betu2')")
+    except sqlite3.IntegrityError:
+        pass  # Users already exist
 
-@app.route("/chat")
+    conn.commit()
+    conn.close()
+
+# ✅ Initialize DB only if it doesn't exist
+if not os.path.exists("database.db"):
+    init_db()
+
+@app.route('/')
+def login_page():
+    return render_template('index.html')
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form['username']
+    password = request.form['password']
+
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
+    user = c.fetchone()
+    conn.close()
+
+    if user:
+        session['username'] = username
+        return redirect('/chat')
+    return "Invalid credentials"
+
+@app.route('/chat')
 def chat():
-    if "username" not in session:
-        return redirect(url_for("index"))
-    return render_template("chat.html", username=session["username"])
+    if 'username' not in session:
+        return redirect('/')
+    return render_template('chat.html', username=session['username'])
 
-# --- Socket.IO Events ---
-@socketio.on("join")
-def handle_join(data):
-    username = data["username"]
-    room = "global"
-    join_room(room)
-    emit("user_joined", {"username": username}, room=room)
+@app.route('/send', methods=['POST'])
+def send_message():
+    sender = session['username']
+    receiver = 'user2' if sender == 'user1' else 'user1'
+    message = request.json['message']
 
-@socketio.on("offer")
-def handle_offer(data):
-    emit("offer", data, broadcast=True, include_self=False)
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO messages (sender, receiver, message) VALUES (?, ?, ?)",
+              (sender, receiver, message))
+    conn.commit()
+    conn.close()
+    return jsonify(success=True)
 
-@socketio.on("answer")
-def handle_answer(data):
-    emit("answer", data, broadcast=True, include_self=False)
+@app.route('/get_messages')
+def get_messages():
+    username = session['username']
+    other_user = 'user2' if username == 'user1' else 'user1'
 
-@socketio.on("candidate")
-def handle_candidate(data):
-    emit("candidate", data, broadcast=True, include_self=False)
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM messages WHERE (sender=? AND receiver=?) OR (sender=? AND receiver=?) ORDER BY timestamp",
+              (username, other_user, other_user, username))
+    messages = c.fetchall()
+    conn.close()
 
-if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    return jsonify([{
+        'id': msg[0],
+        'sender': msg[1],
+        'text': msg[3],
+        'time': msg[4]
+    } for msg in messages])
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    return redirect('/')
