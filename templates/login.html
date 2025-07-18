@@ -1,76 +1,84 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Login</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .login-container {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            width: 300px;
-            text-align: center;
-        }
-        h1 {
-            color: #ff6b6b;
-            margin-bottom: 20px;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-        }
-        button:hover {
-            background: #e05555;
-        }
-        .error {
-            color: red;
-            margin-top: 10px;
-        }
-    </style>
-</head>
-<body>
-    <div class="login-container">
-        <h1>Video Chat Login</h1>
-        <form id="loginForm">
-            <input type="text" id="username" placeholder="Enter your username" required>
-            <button type="submit">Login</button>
-        </form>
-        <div id="error" class="error"></div>
-    </div>
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
 
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const username = document.getElementById('username').value.trim();
-            if (username) {
-                window.location.href = `/chat?username=${encodeURIComponent(username)}`;
-            } else {
-                document.getElementById('error').textContent = 'Please enter a username';
-            }
-        });
-    </script>
-</body>
-</html>
+app = Flask(__name__)
+app.secret_key = 'your-secret-key-123'  # Change this for production
+
+# Mock database (replace with real database in production)
+users = {
+    'user1': generate_password_hash('password1'),
+    'user2': generate_password_hash('password2')
+}
+
+messages = []
+active_users = set()
+
+@app.route('/')
+def home():
+    return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        
+        if not username or not password:
+            return jsonify({'success': False, 'message': 'Both fields are required'}), 400
+            
+        if username not in users or not check_password_hash(users[username], password):
+            return jsonify({'success': False, 'message': 'Invalid username or password'}), 401
+            
+        session['username'] = username
+        active_users.add(username)
+        return jsonify({'success': True, 'redirect': url_for('chat')})
+    
+    return render_template('login.html')
+
+@app.route('/chat')
+def chat():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    return render_template('chat.html', username=session['username'])
+
+@app.route('/logout')
+def logout():
+    if 'username' in session:
+        active_users.discard(session['username'])
+        session.pop('username', None)
+    return redirect(url_for('login'))
+
+@app.route('/send', methods=['POST'])
+def send_message():
+    if 'username' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+        
+    data = request.get_json()
+    message = data.get('message', '').strip()
+    
+    if not message:
+        return jsonify({'success': False, 'message': 'Message cannot be empty'}), 400
+    
+    messages.append({
+        'sender': session['username'],
+        'text': message,
+        'time': datetime.now().strftime('%H:%M:%S')
+    })
+    return jsonify({'success': True})
+
+@app.route('/get_messages')
+def get_messages():
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    return jsonify(messages)
+
+@app.route('/get_users')
+def get_users():
+    if 'username' not in session:
+        return jsonify({'success': False}), 401
+    return jsonify({'users': list(active_users)})
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
