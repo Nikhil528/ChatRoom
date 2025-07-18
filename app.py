@@ -1,17 +1,22 @@
 from flask import Flask, request, jsonify, render_template, session
-from flask_cors import CORS
 from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # Needed for session
-CORS(app)  # Enable CORS if needed
 
 # Store messages in memory (for demo)
 messages = []
 
+# Simple CORS headers (alternative to flask-cors)
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
+
 @app.route('/')
 def index():
-    # Store username in session (simplified)
+    # Store username in session
     session['username'] = request.args.get('username', 'default_user')
     return render_template('chat.html')
 
@@ -31,22 +36,6 @@ def send_message():
 @app.route('/get_messages', methods=['GET'])
 def get_messages():
     return jsonify(messages)
-
-# WebRTC signaling endpoints (simplified)
-@app.route('/offer', methods=['POST'])
-def handle_offer():
-    # In a real app, you'd process WebRTC offer here
-    return jsonify({'status': 'offer_received'})
-
-@app.route('/answer', methods=['POST'])
-def handle_answer():
-    # In a real app, you'd process WebRTC answer here
-    return jsonify({'status': 'answer_received'})
-
-@app.route('/ice-candidate', methods=['POST'])
-def handle_ice_candidate():
-    # In a real app, you'd process ICE candidates here
-    return jsonify({'status': 'candidate_received'})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
