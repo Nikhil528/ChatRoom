@@ -63,6 +63,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Fetch updated messages
                     fetchMessages();
                 }
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
             });
         }
     }
@@ -75,6 +78,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.status === 'success') {
                 displayMessages(data.messages);
             }
+        })
+        .catch(error => {
+            console.error('Error fetching messages:', error);
         });
     }
     
@@ -82,6 +88,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayMessages(messages) {
         // Clear chat messages container
         chatMessages.innerHTML = '';
+        
+        if (messages.length === 0) {
+            chatMessages.innerHTML = '<div class="empty-message">No messages yet. Start the conversation!</div>';
+            return;
+        }
         
         // Get current username from the page
         const username = document.querySelector('.header-left p strong').textContent;
@@ -106,10 +117,8 @@ document.addEventListener('DOMContentLoaded', function() {
             chatMessages.appendChild(messageElement);
         });
         
-        // Scroll to bottom only if there are messages
-        if (messages.length > 0) {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     
     // Fetch messages initially and then every 2 seconds
