@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flax Chat</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -37,6 +37,7 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: manipulation;
         }
 
         body {
@@ -46,6 +47,7 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         /* Login Page Styles */
@@ -444,15 +446,18 @@
             background: var(--accent-light);
         }
 
+        /* Welcome message */
+        .welcome-message {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
         }
 
         /* Responsive Design */
@@ -565,6 +570,9 @@
         </div>
         
         <div class="chat-messages" id="chat-messages">
+            <div class="welcome-message">
+                Start your conversation with a message
+            </div>
             <!-- Messages will be loaded here -->
         </div>
         <div class="chat-input-container">
@@ -596,14 +604,11 @@
         const replyName = document.getElementById('reply-name');
         const replyText = document.getElementById('reply-text');
         const closeReply = document.getElementById('close-reply');
+        const welcomeMessage = document.querySelector('.welcome-message');
         
         // State
         let currentUser = null;
         let replyingTo = null;
-        let touchStartX = 0;
-        let touchStartY = 0;
-        let isSwiping = false;
-        let activeSlider = null;
         const messages = [];
 
         // Theme Management
@@ -632,7 +637,6 @@
 
         // Login Functions
         function handleLogin(username, password) {
-            // Simulate login
             if ((username === 'user1' && password === 'pass1') || 
                 (username === 'user2' && password === 'pass2')) {
                 currentUser = username;
@@ -640,7 +644,6 @@
                 loginPage.style.display = 'none';
                 chatPage.style.display = 'flex';
                 loadUserInfo();
-                generateSampleMessages();
                 return true;
             }
             return false;
@@ -659,6 +662,11 @@
 
         // Message Functions
         function addMessageToUI(message, isSent) {
+            // Hide welcome message when first message is sent
+            if (welcomeMessage && welcomeMessage.style.display !== 'none') {
+                welcomeMessage.style.display = 'none';
+            }
+            
             const messageContainer = document.createElement('div');
             messageContainer.classList.add('message-container');
             
@@ -706,12 +714,6 @@
                 startX = touch.clientX;
                 startY = touch.clientY;
                 isDragging = true;
-                
-                // Close any other open sliders
-                if (activeSlider && activeSlider !== slider) {
-                    activeSlider.style.transform = 'translateX(0)';
-                }
-                activeSlider = slider;
             });
             
             slider.addEventListener('touchmove', function(e) {
@@ -762,49 +764,6 @@
             });
         }
 
-        function generateSampleMessages() {
-            // Clear existing messages
-            chatMessages.innerHTML = '';
-            messages.length = 0;
-            
-            // Generate some sample messages
-            const users = [
-                { id: 'user1', name: 'Alex Johnson', avatar: '👨‍💻' },
-                { id: 'user2', name: 'Sam Smith', avatar: '👩‍💼' }
-            ];
-            
-            const sampleMessages = [
-                "Hey there! How are you doing?",
-                "I'm working on a new project. It's going really well!",
-                "Would you like to grab lunch tomorrow?",
-                "I found this amazing new restaurant downtown",
-                "Let me know if you're free this weekend",
-                "Did you watch the game last night?",
-                "I think we should meet to discuss the details",
-                "Check out this article I found, it's really interesting",
-                "The weather is beautiful today, isn't it?",
-                "Can you send me those files when you get a chance?"
-            ];
-            
-            // Add messages
-            for (let i = 0; i < 8; i++) {
-                const isUser1 = Math.random() > 0.5;
-                const user = isUser1 ? users[0] : users[1];
-                const isCurrentUser = user.id === currentUser;
-                
-                const message = {
-                    id: `msg-${i}`,
-                    sender: user.id,
-                    name: user.name,
-                    avatar: user.avatar,
-                    text: sampleMessages[i]
-                };
-                
-                messages.push(message);
-                addMessageToUI(message, isCurrentUser);
-            }
-        }
-
         function sendMessage() {
             const text = messageInput.value.trim();
             if (text) {
@@ -826,40 +785,7 @@
                 // Clear input and reset reply
                 messageInput.value = '';
                 closeReplyPreview();
-                
-                // Generate a reply after a delay
-                setTimeout(generateReply, 1000 + Math.random() * 2000);
             }
-        }
-
-        function generateReply() {
-            const otherUser = currentUser === 'user1' ? 
-                { id: 'user2', name: 'Sam Smith', avatar: '👩‍💼' } : 
-                { id: 'user1', name: 'Alex Johnson', avatar: '👨‍💻' };
-            
-            const replies = [
-                "That sounds great!",
-                "I'll check my schedule and let you know",
-                "Yes, I'm definitely interested!",
-                "Could you send me more details?",
-                "I think that's a wonderful idea",
-                "Let me get back to you on that",
-                "I'm available at that time",
-                "I just sent you the files",
-                "Looking forward to it!",
-                "Thanks for letting me know"
-            ];
-            
-            const message = {
-                id: `msg-${Date.now()}`,
-                sender: otherUser.id,
-                name: otherUser.name,
-                avatar: otherUser.avatar,
-                text: replies[Math.floor(Math.random() * replies.length)]
-            };
-            
-            messages.push(message);
-            addMessageToUI(message, false);
         }
 
         function closeReplyPreview() {
@@ -927,8 +853,12 @@
             loginPage.style.display = 'none';
             chatPage.style.display = 'flex';
             loadUserInfo();
-            generateSampleMessages();
         }
+        
+        // Prevent zooming
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
     </script>
 </body>
 </html>
