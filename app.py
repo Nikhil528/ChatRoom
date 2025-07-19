@@ -1,15 +1,16 @@
+from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
-# Simple user database (in real app, use proper database)
+# Simple user database
 users = {
     'user1': {'password': 'pass1', 'display_name': 'User One'},
     'user2': {'password': 'pass2', 'display_name': 'User Two'}
 }
 
-# Store messages in memory (in real app, use database)
+# Store messages in memory
 messages = []
 
 @app.route('/')
@@ -38,7 +39,6 @@ def chat():
     if 'username' not in session:
         return redirect(url_for('login'))
     
-    # Only allow user1 and user2 to chat
     if session['username'] not in ['user1', 'user2']:
         return redirect(url_for('login'))
     
@@ -55,30 +55,32 @@ def logout():
 @app.route('/get_messages')
 def get_messages():
     if 'username' not in session:
-        return jsonify({'status': 'error', 'message': 'Not logged in'})
+        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
     
     return jsonify({'status': 'success', 'messages': messages})
 
 @app.route('/send_message', methods=['POST'])
 def send_message():
     if 'username' not in session:
-        return jsonify({'status': 'error', 'message': 'Not logged in'})
+        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
     
-    message = request.json.get('message')
-    if message:
+    data = request.get_json()
+    if not data:
+        return jsonify({'status': 'error', 'message': 'Invalid data'}), 400
+    
+    message = data.get('message')
+    if message and message.strip():
         messages.append({
             'sender': session['username'],
             'display_name': session['display_name'],
-            'message': message,
+            'message': message.strip(),
             'timestamp': datetime.now().strftime('%H:%M')
         })
-        # Keep only the last 100 messages
         if len(messages) > 100:
             messages.pop(0)
-        
         return jsonify({'status': 'success'})
     
-    return jsonify({'status': 'error', 'message': 'Empty message'})
+    return jsonify({'status': 'error', 'message': 'Empty message'}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
