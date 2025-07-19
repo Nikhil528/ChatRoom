@@ -1,8 +1,16 @@
 from flask import Flask, render_template, request, redirect, session, url_for
+from flask_socketio import SocketIO, emit
+from datetime import datetime
+import time
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
+socketio = SocketIO(app)
 
+# Store chat history in memory
+chat_history = []
+
+# User database
 users = {
     'user1': {'password': 'pass1', 'name': 'User One', 'avatar': 'U1'},
     'user2': {'password': 'pass2', 'name': 'User Two', 'avatar': 'U2'}
@@ -42,5 +50,27 @@ def logout():
     session.pop('avatar', None)
     return redirect(url_for('login_page'))
 
+# SocketIO event handlers
+@socketio.on('send_message')
+def handle_send_message(data):
+    # Store message in history
+    chat_history.append({
+        'text': data['text'],
+        'sender': data['sender'],
+        'timestamp': data['timestamp']
+    })
+    
+    # Broadcast to all clients
+    emit('receive_message', {
+        'text': data['text'],
+        'sender': data['sender'],
+        'timestamp': data['timestamp']
+    }, broadcast=True)
+
+@socketio.on('request_history')
+def handle_request_history():
+    # Send chat history to the requesting client
+    emit('chat_history', chat_history)
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)
