@@ -4,36 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Simple Chat</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="login-body">
+<body class="light-mode">
     <div class="login-container">
-        <div class="login-header">
+        <div class="login-box">
             <h1>Simple Chat</h1>
-            <p>Login to start chatting</p>
-        </div>
-        
-        <form action="/login" method="POST" class="login-form">
+            <p>Login to continue</p>
+            
             {% if error %}
-                <div class="error-message">{{ error }}</div>
+            <div class="alert error">{{ error }}</div>
             {% endif %}
             
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Enter username" required>
-            </div>
+            <form method="POST" action="/login">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required placeholder="user1 or user2">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required placeholder="pass1 or pass2">
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
             
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter password" required>
+            <div class="mode-toggle">
+                <button id="modeToggle">🌙 Dark Mode</button>
             </div>
-            
-            <button type="submit" class="login-btn">Login</button>
-        </form>
-        
-        <div class="login-footer">
-            <p>Available users: user1/password1, user2/password2</p>
         </div>
     </div>
+    <script src="/static/script.js"></script>
 </body>
 </html>
