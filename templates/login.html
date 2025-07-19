@@ -297,6 +297,7 @@
             color: var(--accent-color);
             font-weight: 600;
             transition: background 0.2s;
+            padding: 0 15px;
         }
 
         .reply-action:hover {
@@ -502,6 +503,11 @@
                 width: 44px;
                 height: 44px;
             }
+            
+            .reply-action {
+                padding: 0 10px;
+                font-size: 14px;
+            }
         }
     </style>
 </head>
@@ -610,6 +616,9 @@
         let currentUser = null;
         let replyingTo = null;
         const messages = [];
+        let isDragging = false;
+        let startX = 0;
+        let currentSlider = null;
 
         // Theme Management
         function initTheme() {
@@ -706,44 +715,15 @@
         }
 
         function addSlideEvents(slider, message) {
-            let startX, startY, distX, distY;
-            let isDragging = false;
+            slider.addEventListener('touchstart', handleDragStart);
+            slider.addEventListener('mousedown', handleDragStart);
             
-            slider.addEventListener('touchstart', function(e) {
-                const touch = e.touches[0];
-                startX = touch.clientX;
-                startY = touch.clientY;
-                isDragging = true;
-            });
+            slider.addEventListener('touchmove', handleDragMove);
+            slider.addEventListener('mousemove', handleDragMove);
             
-            slider.addEventListener('touchmove', function(e) {
-                if (!isDragging) return;
-                const touch = e.touches[0];
-                distX = touch.clientX - startX;
-                distY = touch.clientY - startY;
-                
-                // Only allow horizontal movement
-                if (Math.abs(distX) > Math.abs(distY)) {
-                    e.preventDefault();
-                    
-                    // Limit movement to the left
-                    if (distX < 0) {
-                        slider.style.transform = `translateX(${distX}px)`;
-                    }
-                }
-            });
-            
-            slider.addEventListener('touchend', function() {
-                if (!isDragging) return;
-                isDragging = false;
-                
-                // If swiped more than 30% of the width, open the slider
-                if (distX < -slider.offsetWidth * 0.3) {
-                    slider.style.transform = 'translateX(-50%)';
-                } else {
-                    slider.style.transform = 'translateX(0)';
-                }
-            });
+            slider.addEventListener('touchend', handleDragEnd);
+            slider.addEventListener('mouseup', handleDragEnd);
+            slider.addEventListener('mouseleave', handleDragEnd);
             
             // Add click event to reply button
             const replyButton = slider.querySelector('.reply-action');
@@ -762,6 +742,50 @@
                 // Reset slider
                 slider.style.transform = 'translateX(0)';
             });
+        }
+
+        function handleDragStart(e) {
+            // Prevent dragging on sent messages
+            if (e.target.closest('.sent')) return;
+            
+            isDragging = true;
+            currentSlider = e.currentTarget;
+            startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            currentSlider.style.transition = 'none';
+        }
+
+        function handleDragMove(e) {
+            if (!isDragging || !currentSlider) return;
+            
+            const currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const diffX = startX - currentX;
+            
+            // Only allow left swiping
+            if (diffX > 0) {
+                // Cap the swipe at 100px
+                const translateX = Math.min(diffX, 100);
+                currentSlider.style.transform = `translateX(-${translateX}px)`;
+            }
+        }
+
+        function handleDragEnd() {
+            if (!isDragging || !currentSlider) return;
+            
+            isDragging = false;
+            currentSlider.style.transition = 'transform 0.3s ease';
+            
+            // Get current translation
+            const transform = currentSlider.style.transform;
+            const translateX = transform ? parseInt(transform.replace('translateX(-', '').replace('px)', '')) : 0;
+            
+            // If swiped more than 50px, keep it open, otherwise reset
+            if (translateX > 50) {
+                currentSlider.style.transform = 'translateX(-100px)';
+            } else {
+                currentSlider.style.transform = 'translateX(0)';
+            }
+            
+            currentSlider = null;
         }
 
         function sendMessage() {
