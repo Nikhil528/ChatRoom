@@ -106,8 +106,10 @@ document.addEventListener('DOMContentLoaded', function() {
             chatMessages.appendChild(messageElement);
         });
         
-        // Scroll to bottom
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        // Scroll to bottom only if there are messages
+        if (messages.length > 0) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
     
     // Fetch messages initially and then every 2 seconds
