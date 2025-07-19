@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flax Chat | Secure Messaging</title>
+    <title>Flax Chat | {{ name }}</title>
     <link href="https://cdn.jsdelivr.net/npm/flaxcss@latest/dist/flax.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -294,6 +294,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script>
         // DOM Elements
         const themeToggle = document.getElementById('themeToggle');
@@ -328,17 +329,18 @@
             avatar: currentUser.username === 'user1' ? 'U2' : 'U1'
         };
 
+        // Connect to Socket.IO
+        const socket = io();
+
         // Function to add a message to the chat
-        function addMessage(text, user, isSent) {
+        function addMessage(text, sender, timestamp) {
+            const isSent = sender.username === currentUser.username;
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', isSent ? 'sent' : 'received');
             
-            const now = new Date();
-            const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
             messageElement.innerHTML = `
                 <div>${text}</div>
-                <span class="message-time">${time}</span>
+                <span class="message-time">${timestamp}</span>
             `;
             
             chatMessages.appendChild(messageElement);
@@ -349,31 +351,44 @@
         function sendMessage() {
             const message = messageInput.value.trim();
             if (message) {
-                // Add the message as sent by the current user
-                addMessage(message, currentUser, true);
-                messageInput.value = '';
+                const now = new Date();
+                const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 
-                // Simulate a reply from the other user after a random delay
-                setTimeout(simulateReply, 1000 + Math.random() * 2000);
+                // Add the message locally immediately
+                addMessage(message, currentUser, timestamp);
+                
+                // Send to server
+                socket.emit('send_message', {
+                    text: message,
+                    sender: currentUser.username,
+                    timestamp: timestamp
+                });
+                
+                // Clear input
+                messageInput.value = '';
             }
         }
 
-        // Simulate a reply from the other user
-        function simulateReply() {
-            const replies = [
-                "Thanks for your message!",
-                "That's interesting, tell me more.",
-                "I'll get back to you on that.",
-                "Just saw your message. Let me think about it.",
-                "Can we discuss this later today?",
-                "I agree with your point.",
-                "Could you clarify that last part?",
-                "Let me check my schedule and get back to you."
-            ];
-            
-            const reply = replies[Math.floor(Math.random() * replies.length)];
-            addMessage(reply, otherUser, false);
-        }
+        // Receive messages from other user
+        socket.on('receive_message', (data) => {
+            // Only show messages from the other user
+            if (data.sender === otherUser.username) {
+                addMessage(data.text, otherUser, data.timestamp);
+            }
+        });
+
+        // Load chat history
+        socket.on('chat_history', (history) => {
+            history.forEach(msg => {
+                const sender = msg.sender === currentUser.username ? currentUser : otherUser;
+                addMessage(msg.text, sender, msg.timestamp);
+            });
+        });
+
+        // Request chat history when connected
+        socket.on('connect', () => {
+            socket.emit('request_history');
+        });
 
         // Event Listeners
         sendBtn.addEventListener('click', sendMessage);
@@ -381,30 +396,6 @@
             if (e.key === 'Enter') {
                 sendMessage();
             }
-        });
-
-        // Initial messages for demonstration
-        window.addEventListener('DOMContentLoaded', () => {
-            // Add a welcome message from the other user
-            setTimeout(() => {
-                addMessage('Hi there! 👋 How are you doing today?', otherUser, false);
-            }, 500);
-            
-            setTimeout(() => {
-                addMessage('I\'m doing great! Just finished that project we were working on. 🎉', currentUser, true);
-            }, 1500);
-            
-            setTimeout(() => {
-                addMessage('That\'s awesome news! Can you share the final version with me?', otherUser, false);
-            }, 3000);
-            
-            setTimeout(() => {
-                addMessage('Sure! I\'ll send it over right now. Check your email in 5 minutes.', currentUser, true);
-            }, 4500);
-            
-            setTimeout(() => {
-                addMessage('Perfect! By the way, are we still meeting for lunch tomorrow?', otherUser, false);
-            }, 6000);
         });
     </script>
 </body>
