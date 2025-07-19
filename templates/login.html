@@ -3,207 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flax Chat - Login</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary-color: #7e57c2;
-            --primary-light: #b085f5;
-            --primary-dark: #4d2c91;
-            --light-bg: #f5f7fb;
-            --light-text: #333333;
-            --light-card: #ffffff;
-            --light-border: #e0e0e0;
-            --dark-bg: #121212;
-            --dark-text: #e0e0e0;
-            --dark-card: #1e1e1e;
-            --dark-border: #333333;
-            --user1-color: #ff6b6b;
-            --user2-color: #4dabf7;
-            --success: #51cf66;
-            --error: #ff6b6b;
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        body {
-            font-family: 'Nunito', sans-serif;
-            background-color: var(--light-bg);
-            color: var(--light-text);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: background-color 0.3s;
-        }
-
-        body.dark-mode {
-            background-color: var(--dark-bg);
-            color: var(--dark-text);
-        }
-
-        .login-container {
-            background-color: var(--light-card);
-            border-radius: 20px;
-            box-shadow: var(--shadow);
-            width: 100%;
-            max-width: 400px;
-            padding: 40px 30px;
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .dark-mode .login-container {
-            background-color: var(--dark-card);
-        }
-
-        .login-title {
-            color: var(--primary-color);
-            margin-bottom: 30px;
-            font-size: 2rem;
-        }
-
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .input-group {
-            position: relative;
-        }
-
-        .input-group i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--primary-light);
-        }
-
-        input {
-            width: 100%;
-            padding: 15px 15px 15px 45px;
-            border: 2px solid var(--light-border);
-            border-radius: 12px;
-            font-size: 1rem;
-            background-color: transparent;
-            color: var(--light-text);
-        }
-
-        .dark-mode input {
-            border-color: var(--dark-border);
-            color: var(--dark-text);
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-
-        .btn {
-            padding: 14px 20px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .btn:hover {
-            background-color: var(--primary-dark);
-        }
-
-        .theme-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: var(--light-card);
-            border: 2px solid var(--light-border);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 1.2rem;
-            color: var(--light-text);
-        }
-
-        .dark-mode .theme-toggle {
-            background: var(--dark-card);
-            border-color: var(--dark-border);
-            color: var(--dark-text);
-        }
-
-        .error-message {
-            color: var(--error);
-            margin-top: 10px;
-        }
-
-        @media (max-width: 480px) {
-            .login-container {
-                max-width: 90%;
-                padding: 30px 20px;
-            }
-            
-            .login-title {
-                font-size: 1.7rem;
-            }
-        }
-    </style>
+    <title>Login - Simple Chat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="light-mode">
-    <div class="theme-toggle" id="themeToggle">
-        <i class="fas fa-moon"></i>
-    </div>
-
+<body class="login-body">
     <div class="login-container">
-        <h1 class="login-title">Flax Chat</h1>
-        <form class="login-form" id="loginForm" method="POST">
-            <div class="input-group">
-                <i class="fas fa-user"></i>
-                <input type="text" name="username" id="username" placeholder="Username" required>
-            </div>
-            <div class="input-group">
-                <i class="fas fa-lock"></i>
-                <input type="password" name="password" id="password" placeholder="Password" required>
-            </div>
-            <button type="submit" class="btn">Login to Chat</button>
-        </form>
-        {% if error %}
-            <p class="error-message">{{ error }}</p>
-        {% endif %}
-    </div>
-
-    <script>
-        // Theme Toggle
-        const themeToggle = document.getElementById('themeToggle');
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const icon = themeToggle.querySelector('i');
-            if (document.body.classList.contains('dark-mode')) {
-                icon.classList.remove('fa-moon');
-                icon.classList.add('fa-sun');
-            } else {
-                icon.classList.remove('fa-sun');
-                icon.classList.add('fa-moon');
-            }
-        });
+        <div class="login-header">
+            <h1>Simple Chat</h1>
+            <p>Login to start chatting</p>
+        </div>
         
-        // Initialize with light mode icon
-        document.querySelector('.theme-toggle i').classList.add('fa-moon');
-    </script>
+        <form action="/login" method="POST" class="login-form">
+            {% if error %}
+                <div class="error-message">{{ error }}</div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter password" required>
+            </div>
+            
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+        
+        <div class="login-footer">
+            <p>Available users: user1/password1, user2/password2</p>
+        </div>
+    </div>
 </body>
 </html>
