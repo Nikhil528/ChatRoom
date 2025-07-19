@@ -5,44 +5,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat - {{ name }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="light-mode">
-    <div class="chat-container">
+    <div class="chat-app">
         <header class="chat-header">
-            <div class="user-info">
-                <h1>Hello, {{ name }}</h1>
-                <p>Chatting with {{ other_user_name }}</p>
-            </div>
-            <div class="header-actions">
-                <button id="themeToggle" class="theme-toggle">🌙</button>
-                <a href="/logout" class="logout-button">Logout</a>
+            <div class="header-content">
+                <div class="user-info">
+                    <div class="avatar" style="background-color: {{ color }};">
+                        <span class="emoji-avatar">{{ avatar }}</span>
+                    </div>
+                    <div class="details">
+                        <h1>{{ name }}</h1>
+                        <p>Online</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button id="themeToggle" class="theme-toggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <a href="/logout" class="logout-button">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
             </div>
         </header>
         
-        <div class="chat-messages" id="chatMessages">
-            {% for msg in messages %}
-            <div class="message {% if msg.sender == username %}sent{% else %}received{% endif %}">
-                <div class="message-content">
-                    <span class="sender-name">{{ msg.name }}</span>
-                    <p>{{ msg.message }}</p>
-                    <span class="message-time">{{ msg.time }}</span>
+        <main class="chat-content">
+            <div class="chat-messages" id="chatMessages">
+                {% for msg in messages %}
+                <div class="message-container {% if msg.sender == username %}sent{% else %}received{% endif %}" data-id="{{ msg.id }}">
+                    <div class="message-wrapper">
+                        {% if msg.reply_to %}
+                        <div class="reply-preview">
+                            <div class="reply-content">
+                                <span class="reply-name">{{ msg.reply_to.name }}</span>
+                                <p class="reply-text">{{ msg.reply_to.message }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="message-bubble">
+                            <div class="message-content">
+                                <p>{{ msg.message }}</p>
+                                <div class="message-meta">
+                                    <span class="message-time">{{ msg.time }}</span>
+                                    {% if msg.sender == username %}
+                                    <i class="fas fa-check-double read-receipt"></i>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="message-avatar">
+                        <div class="avatar" style="background-color: {{ msg.color }};">
+                            <span class="emoji-avatar">{{ msg.avatar }}</span>
+                        </div>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+        </main>
         
         <form class="message-form" method="POST">
-            <input type="text" name="message" placeholder="Type your message..." required>
-            <button type="submit">Send</button>
+            <input type="hidden" name="reply_to" id="replyTo" value="">
+            <div class="form-content">
+                <div class="reply-indicator" id="replyIndicator">
+                    <div class="reply-info">
+                        <span id="replyName"></span>
+                        <p id="replyText"></p>
+                    </div>
+                    <button type="button" class="cancel-reply" id="cancelReply">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="input-group">
+                    <input type="text" name="message" placeholder="Type your message..." required>
+                    <button type="submit" class="send-button">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
         </form>
     </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script>
-        // Scroll to bottom of chat
-        window.onload = function() {
-            const chatMessages = document.getElementById('chatMessages');
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        };
-    </script>
 </body>
 </html>
