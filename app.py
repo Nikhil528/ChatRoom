@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, session, redirect, url_for
-from datetime import timedelta
+from datetime import datetime, timedelta  # Added datetime import
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
@@ -40,22 +40,24 @@ def chat():
     
     if request.method == 'POST':
         message = request.form.get('message')
-        if message:
+        if message and message.strip():
             messages.append({
                 'sender': session['username'],
                 'name': session['name'],
-                'message': message,
+                'message': message.strip(),
                 'time': datetime.now().strftime('%H:%M')
             })
+            return redirect(url_for('chat'))  # Redirect to avoid form resubmission
+    
+    other_user = "user2" if session['username'] == "user1" else "user1"
+    other_user_name = users[other_user]['name']
     
     return render_template('chat.html', 
                          username=session['username'],
                          name=session['name'],
                          messages=messages,
-                         other_user=get_other_user(session['username']))
-
-def get_other_user(current_user):
-    return "user2" if current_user == "user1" else "user1"
+                         other_user=other_user,
+                         other_user_name=other_user_name)
 
 @app.route('/logout')
 def logout():
