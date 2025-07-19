@@ -1,84 +1,60 @@
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-123'  # Change this for production
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app, async_mode='eventlet')
 
-# Mock database (replace with real database in production)
-users = {
-    'betu1': generate_password_hash('betu'),
-    'betu2': generate_password_hash('betu2')
-}
+# Track rooms and users
+rooms = {}
 
-messages = []
-active_users = set()
-
-@app.route('/')
-def home():
-    return redirect(url_for('login'))
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        data = request.get_json()
-        username = data.get('username', '').strip()
-        password = data.get('password', '')
-        
-        if not username or not password:
-            return jsonify({'success': False, 'message': 'Both fields are required'}), 400
-            
-        if username not in users or not check_password_hash(users[username], password):
-            return jsonify({'success': False, 'message': 'Invalid username or password'}), 401
-            
-        session['username'] = username
-        active_users.add(username)
-        return jsonify({'success': True, 'redirect': url_for('chat')})
+@socketio.on('join')
+def handle_join(data):
+    room_id = data['room_id']
+    user_id = data['user_id']
     
-    return render_template('login.html')
-
-@app.route('/chat')
-def chat():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    return render_template('chat.html', username=session['username'])
-
-@app.route('/logout')
-def logout():
-    if 'username' in session:
-        active_users.discard(session['username'])
-        session.pop('username', None)
-    return redirect(url_for('login'))
-
-@app.route('/send', methods=['POST'])
-def send_message():
-    if 'username' not in session:
-        return jsonify({'success': False, 'message': 'Not logged in'}), 401
-        
-    data = request.get_json()
-    message = data.get('message', '').strip()
+    join_room(room_id)
     
-    if not message:
-        return jsonify({'success': False, 'message': 'Message cannot be empty'}), 400
+    # Initialize room if not exists
+    if room_id not in rooms:
+        rooms[room_id] = {'users': []}
     
-    messages.append({
-        'sender': session['username'],
-        'text': message,
-        'time': datetime.now().strftime('%H:%M:%S')
-    })
-    return jsonify({'success': True})
+    # Add user to room
+    rooms[room_id]['users'].append(user_id)
+    
+    # Notify others in the room
+    emit('user_joined', {'user_id': user_id}, to=room_id, include_self=False)
+    
+    # Send existing users to the new user
+    emit('existing_users', {'users': rooms[room_id]['users']})
 
-@app.route('/get_messages')
-def get_messages():
-    if 'username' not in session:
-        return jsonify({'success': False}), 401
-    return jsonify(messages)
+@socketio.on('signal')
+def handle_signal(data):
+    # Relay signaling data to specific user
+    emit('signal', data, to=data['target_user_id'])
 
-@app.route('/get_users')
-def get_users():
-    if 'username' not in session:
-        return jsonify({'success': False}), 401
-    return jsonify({'users': list(active_users)})
+@socketio.on('chat_message')
+def handle_chat(data):
+    # Broadcast chat message to room
+    emit('chat_message', {
+        'user_id': data['user_id'],
+        'message': data['message']
+    }, to=data['room_id'])
+
+@socketio.on('leave')
+def handle_leave(data):
+    room_id = data['room_id']
+    user_id = data['user_id']
+    
+    leave_room(room_id)
+    rooms[room_id]['users'].remove(user_id)
+    
+    # Notify room
+    emit('user_left', {'user_id': user_id}, to=room_id)
+
+@app.route('/<room_id>')
+def index(room_id):
+    return render_template('index.html', room_id=room_id)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
