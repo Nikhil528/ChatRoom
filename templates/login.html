@@ -3,43 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flax Chat | Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/flaxcss@latest/dist/flax.min.css" rel="stylesheet">
+    <title>Flax Chat - Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Styles remain the same as previous version */
+        :root {
+            --primary-color: #7e57c2;
+            --primary-light: #b085f5;
+            --primary-dark: #4d2c91;
+            --light-bg: #f5f7fb;
+            --light-text: #333333;
+            --light-card: #ffffff;
+            --light-border: #e0e0e0;
+            --dark-bg: #121212;
+            --dark-text: #e0e0e0;
+            --dark-card: #1e1e1e;
+            --dark-border: #333333;
+            --user1-color: #ff6b6b;
+            --user2-color: #4dabf7;
+            --success: #51cf66;
+            --error: #ff6b6b;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--light-bg);
+            color: var(--light-text);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        body.dark-mode {
+            background-color: var(--dark-bg);
+            color: var(--dark-text);
+        }
+
+        .login-container {
+            background-color: var(--light-card);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 30px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .dark-mode .login-container {
+            background-color: var(--dark-card);
+        }
+
+        .login-title {
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-light);
+        }
+
+        input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 2px solid var(--light-border);
+            border-radius: 12px;
+            font-size: 1rem;
+            background-color: transparent;
+            color: var(--light-text);
+        }
+
+        .dark-mode input {
+            border-color: var(--dark-border);
+            color: var(--dark-text);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            padding: 14px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--light-card);
+            border: 2px solid var(--light-border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--light-text);
+        }
+
+        .dark-mode .theme-toggle {
+            background: var(--dark-card);
+            border-color: var(--dark-border);
+            color: var(--dark-text);
+        }
+
+        .error-message {
+            color: var(--error);
+            margin-top: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                max-width: 90%;
+                padding: 30px 20px;
+            }
+            
+            .login-title {
+                font-size: 1.7rem;
+            }
+        }
     </style>
 </head>
-<body>
-    <!-- Theme Toggle Button -->
-    <button class="theme-toggle" id="themeToggle">
+<body class="light-mode">
+    <div class="theme-toggle" id="themeToggle">
         <i class="fas fa-moon"></i>
-    </button>
+    </div>
 
-    <!-- Login Page -->
     <div class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <h1>Flax Chat</h1>
-                <p>Secure messaging between User1 & User2</p>
+        <h1 class="login-title">Flax Chat</h1>
+        <form class="login-form" id="loginForm" method="POST">
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" name="username" id="username" placeholder="Username" required>
             </div>
-            <div class="login-body">
-                <form action="/login" method="POST">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" name="username" class="form-control" placeholder="Enter username" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" class="form-control" placeholder="Enter password" required>
-                    </div>
-                    <button type="submit" class="btn">Login to Chat</button>
-                    <p class="text-center" style="margin-top: 20px; color: var(--text-light);">
-                        Use <strong>user1/pass1</strong> or <strong>user2/pass2</strong>
-                    </p>
-                </form>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" name="password" id="password" placeholder="Password" required>
             </div>
-        </div>
+            <button type="submit" class="btn">Login to Chat</button>
+        </form>
+        {% if error %}
+            <p class="error-message">{{ error }}</p>
+        {% endif %}
     </div>
 
     <script>
@@ -56,6 +201,9 @@
                 icon.classList.add('fa-moon');
             }
         });
+        
+        // Initialize with light mode icon
+        document.querySelector('.theme-toggle i').classList.add('fa-moon');
     </script>
 </body>
 </html>
