@@ -1,4 +1,3 @@
-// Same as previous version
 document.addEventListener('DOMContentLoaded', function() {
     // Theme toggle functionality
     const themeToggle = document.getElementById('themeToggle');
@@ -86,7 +85,8 @@ function setupReplyFeature() {
         
         const id = messageContainer.dataset.id;
         const name = messageContainer.querySelector('.message-content p')?.textContent;
-        const text = messageContainer.querySelector('.sender-name')?.textContent;
+        const text = messageContainer.querySelector('.reply-name')?.textContent || 
+                    messageContainer.querySelector('.sender-name')?.textContent;
         
         if (id && name && text) {
             replyTo.value = id;
@@ -163,7 +163,8 @@ function setupSwipeToReply() {
             if (distX < 0) {
                 const id = messageContainer.dataset.id;
                 const name = messageContainer.querySelector('.message-content p')?.textContent;
-                const text = messageContainer.querySelector('.sender-name')?.textContent;
+                const text = messageContainer.querySelector('.reply-name')?.textContent || 
+                            messageContainer.querySelector('.sender-name')?.textContent;
                 
                 if (id && name && text) {
                     document.getElementById('replyTo').value = id;
