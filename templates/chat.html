@@ -2,47 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat - {{ name }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Chat Room</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="light-mode">
-    <div class="chat-container">
-        <header class="chat-header">
-            <div class="user-info">
-                <h1>Hello, {{ name }}</h1>
-                <p>Chatting with {{ users[other_user]['name'] if other_user in users else other_user }}</p>
-            </div>
-            <div class="header-actions">
-                <button id="themeToggle" class="theme-toggle">🌙</button>
-                <a href="/logout" class="logout-button">Logout</a>
+<body class="dark:bg-gray-900 bg-gray-100 text-gray-900 dark:text-white transition-colors">
+    <div class="flex flex-col h-screen">
+        <header class="p-4 bg-white dark:bg-gray-800 shadow flex justify-between items-center">
+            <h2 class="text-xl font-semibold">Chat Room</h2>
+            <div class="flex space-x-4 items-center">
+                <span>{{ username }}</span>
+                <a href="{{ url_for('logout') }}" class="text-red-500">Logout</a>
+                <button onclick="toggleTheme()" class="text-gray-500 dark:text-gray-300">🌙/☀️</button>
             </div>
         </header>
-        
-        <div class="chat-messages" id="chatMessages">
-            {% for msg in messages %}
-            <div class="message {% if msg.sender == username %}sent{% else %}received{% endif %}">
-                <div class="message-content">
-                    <span class="sender-name">{{ msg.name }}</span>
-                    <p>{{ msg.message }}</p>
-                    <span class="message-time">{{ msg.time }}</span>
-                </div>
-            </div>
-            {% endfor %}
+
+        <main id="chat-box" class="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col"></main>
+
+        <div id="reply-to" class="hidden bg-blue-100 dark:bg-blue-900 p-3 mx-4 mb-2 rounded-xl flex justify-between items-center">
+            <span id="reply-text" class="text-sm italic"></span>
+            <button type="button" onclick="cancelReply()" class="text-gray-600">✖</button>
         </div>
-        
-        <form class="message-form" method="POST">
-            <input type="text" name="message" placeholder="Type your message..." required>
-            <button type="submit">Send</button>
+
+        <form id="chat-form" class="p-4 bg-white dark:bg-gray-800 flex items-center space-x-2">
+            <input type="text" id="message-input" placeholder="Type your message..." required
+                class="flex-1 p-2 rounded-full border dark:border-gray-600 focus:outline-none">
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600">Send</button>
         </form>
     </div>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
     <script>
-        // Scroll to bottom of chat
-        window.onload = function() {
-            const chatMessages = document.getElementById('chatMessages');
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        };
+        const username = "{{ username }}";
     </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
