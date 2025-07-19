@@ -4,41 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat - Simple Chat</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
+<body class="light-mode">
     <div class="chat-container">
-        <!-- Header -->
-        <div class="chat-header">
-            <div class="header-left">
-                <h1>Simple Chat</h1>
-                <p>Chatting as <strong>{{ username }}</strong></p>
+        <header class="chat-header">
+            <h1>Simple Chat</h1>
+            <div class="user-info">
+                <span>Hello, {{ display_name }}</span>
+                <a href="/logout" class="btn logout-btn">Logout</a>
             </div>
-            <div class="header-right">
-                <button id="theme-toggle" class="theme-btn">
-                    <i class="fas fa-moon"></i>
-                </button>
-                <a href="/logout" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
+        </header>
+        
+        <div class="chat-messages" id="chatMessages">
+            <!-- Messages will be loaded here -->
         </div>
         
-        <!-- Chat Messages -->
-        <div class="chat-messages" id="chat-messages">
-            <!-- Messages will appear here -->
-        </div>
-        
-        <!-- Chat Input -->
         <div class="chat-input">
-            <input type="text" id="message-input" placeholder="Type your message...">
-            <button id="send-btn">
-                <i class="fas fa-paper-plane"></i> Send
-            </button>
+            <input type="text" id="messageInput" placeholder="Type your message...">
+            <button id="sendButton" class="btn">Send</button>
+        </div>
+        
+        <div class="mode-toggle">
+            <button id="modeToggle">🌙 Dark Mode</button>
         </div>
     </div>
     
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        const currentUser = "{{ username }}";
+    </script>
+    <script src="/static/script.js"></script>
 </body>
 </html>
