@@ -3,54 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat | Beautiful Chat</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Chat - {{ name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="light-mode">
     <div class="chat-container">
         <header class="chat-header">
-            <div class="header-content">
-                <div class="user-profile">
-                    <img src="{{ avatar }}" alt="Profile" class="profile-avatar">
-                    <div class="user-info">
-                        <span class="username">{{ display_name }}</span>
-                        <span class="status">Online</span>
-                    </div>
-                </div>
-                <div class="header-actions">
-                    <button id="modeToggle" class="btn-icon">
-                        <i class="fas fa-moon"></i>
-                    </button>
-                    <a href="/logout" class="btn-icon">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </a>
-                </div>
+            <div class="user-info">
+                <h1>Hello, {{ name }}</h1>
+                <p>Chatting with {{ users[other_user]['name'] if other_user in users else other_user }}</p>
+            </div>
+            <div class="header-actions">
+                <button id="themeToggle" class="theme-toggle">🌙</button>
+                <a href="/logout" class="logout-button">Logout</a>
             </div>
         </header>
         
         <div class="chat-messages" id="chatMessages">
-            <!-- Messages will appear here -->
+            {% for msg in messages %}
+            <div class="message {% if msg.sender == username %}sent{% else %}received{% endif %}">
+                <div class="message-content">
+                    <span class="sender-name">{{ msg.name }}</span>
+                    <p>{{ msg.message }}</p>
+                    <span class="message-time">{{ msg.time }}</span>
+                </div>
+            </div>
+            {% endfor %}
         </div>
         
-        <div class="chat-input">
-            <input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off">
-            <button id="sendButton" class="btn">
-                <i class="fas fa-paper-plane"></i>
-            </button>
-        </div>
+        <form class="message-form" method="POST">
+            <input type="text" name="message" placeholder="Type your message..." required>
+            <button type="submit">Send</button>
+        </form>
     </div>
-    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
-        const currentUser = {
-            username: "{{ username }}",
-            displayName: "{{ display_name }}",
-            avatar: "{{ avatar }}",
-            color: "{{ color }}",
-            oppositeColor: "{{ opposite_color }}"
+        // Scroll to bottom of chat
+        window.onload = function() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         };
     </script>
-    <script src="/static/script.js"></script>
 </body>
 </html>
