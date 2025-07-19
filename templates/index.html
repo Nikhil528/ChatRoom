@@ -20,6 +20,7 @@
             min-height: 100vh;
             font-family: 'Nunito', sans-serif;
             overflow-x: hidden;
+            padding: 20px;
         }
         
         .chat-container {
@@ -55,16 +56,21 @@
             position: relative;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             transition: transform 0.3s ease;
+            aspect-ratio: 4/3;
         }
         
         .video-item:hover {
             transform: translateY(-5px);
         }
         
-        .video-item video {
+        .video-placeholder {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
         }
         
         .user-name {
@@ -337,59 +343,14 @@
                                 </div>
                                 
                                 <div class="participants-list">
-                                    <h6 class="mb-3"><i class="fas fa-users me-2"></i> Participants (4)</h6>
-                                    <div class="participant">
-                                        <div class="status-indicator online"></div>
-                                        <div class="user-avatar">JD</div>
-                                        <div>John Doe (You)</div>
-                                    </div>
-                                    <div class="participant">
-                                        <div class="status-indicator online"></div>
-                                        <div class="user-avatar">SJ</div>
-                                        <div>Sarah Johnson</div>
-                                    </div>
-                                    <div class="participant">
-                                        <div class="status-indicator online"></div>
-                                        <div class="user-avatar">MR</div>
-                                        <div>Mike Rodriguez</div>
-                                    </div>
-                                    <div class="participant">
-                                        <div class="status-indicator online"></div>
-                                        <div class="user-avatar">EP</div>
-                                        <div>Emma Parker</div>
+                                    <h6 class="mb-3"><i class="fas fa-users me-2"></i> Participants (<span id="participantCount">0</span>)</h6>
+                                    <div id="participantsContainer">
+                                        <!-- Participants will be added here dynamically -->
                                     </div>
                                 </div>
                                 
                                 <div class="chat-messages" id="chatMessages">
-                                    <div class="message message-received">
-                                        <div class="message-sender">Sarah Johnson</div>
-                                        <div class="message-content">Hi everyone! Can you hear me okay?</div>
-                                    </div>
-                                    
-                                    <div class="message message-sent">
-                                        <div class="message-sender">You</div>
-                                        <div class="message-content">Yes, we can hear you clearly!</div>
-                                    </div>
-                                    
-                                    <div class="message message-received">
-                                        <div class="message-sender">Mike Rodriguez</div>
-                                        <div class="message-content">The audio quality is great on my end.</div>
-                                    </div>
-                                    
-                                    <div class="message message-received">
-                                        <div class="message-sender">Emma Parker</div>
-                                        <div class="message-content">I'm having some issues with my camera, but I'll fix it shortly.</div>
-                                    </div>
-                                    
-                                    <div class="message message-sent">
-                                        <div class="message-sender">You</div>
-                                        <div class="message-content">No problem Emma. We'll wait for you.</div>
-                                    </div>
-                                    
-                                    <div class="message message-received">
-                                        <div class="message-sender">Sarah Johnson</div>
-                                        <div class="message-content">So, should we start discussing the project?</div>
-                                    </div>
+                                    <!-- Messages will appear here -->
                                 </div>
                                 
                                 <div class="chat-input">
@@ -423,19 +384,20 @@
         const toggleVideoBtn = document.getElementById('toggleVideo');
         const toggleAudioBtn = document.getElementById('toggleAudio');
         const leaveCallBtn = document.getElementById('leaveCall');
+        const participantsContainer = document.getElementById('participantsContainer');
+        const participantCount = document.getElementById('participantCount');
         
-        // Demo user data
-        const demoUsers = [
-            { id: 1, name: "John Doe", initials: "JD", online: true },
-            { id: 2, name: "Sarah Johnson", initials: "SJ", online: true },
-            { id: 3, name: "Mike Rodriguez", initials: "MR", online: true },
-            { id: 4, name: "Emma Parker", initials: "EP", online: true }
-        ];
+        // State
+        let participants = [];
+        let localUserName = '';
+        let roomId = '';
+        let videoEnabled = true;
+        let audioEnabled = true;
         
         // Join the call
         joinButton.addEventListener('click', () => {
-            const userName = userNameInput.value.trim() || "Anonymous";
-            let roomId = roomIdInput.value.trim();
+            localUserName = userNameInput.value.trim() || "Anonymous";
+            roomId = roomIdInput.value.trim();
             
             if (!roomId) {
                 // Generate a random room ID
@@ -448,21 +410,33 @@
             // Update room ID display
             roomIdValue.textContent = roomId;
             
-            // Add local video
-            addVideoElement("You", userName, true);
+            // Add local participant
+            addParticipant(localUserName, 'You', true);
             
-            // Add demo participants
+            // Add local video
+            addVideoElement(localUserName, getInitials(localUserName), true);
+            
+            // Simulate other participants joining
             setTimeout(() => {
+                addParticipant("Sarah Johnson", "SJ");
                 addVideoElement("Sarah Johnson", "SJ");
+                addSystemMessage("Sarah Johnson joined the call");
             }, 1000);
             
             setTimeout(() => {
+                addParticipant("Mike Rodriguez", "MR");
                 addVideoElement("Mike Rodriguez", "MR");
+                addSystemMessage("Mike Rodriguez joined the call");
             }, 2000);
             
             setTimeout(() => {
+                addParticipant("Emma Parker", "EP");
                 addVideoElement("Emma Parker", "EP");
+                addSystemMessage("Emma Parker joined the call");
             }, 3000);
+            
+            // Add welcome message
+            addSystemMessage("Welcome to the video chat room! Start chatting with your participants.");
         });
         
         // Add video element to the grid
@@ -470,16 +444,9 @@
             const videoItem = document.createElement('div');
             videoItem.className = 'video-item';
             
-            // For demo purposes, we'll use a placeholder
             const videoPlaceholder = document.createElement('div');
+            videoPlaceholder.className = 'video-placeholder';
             videoPlaceholder.style.backgroundColor = getRandomColor();
-            videoPlaceholder.style.width = '100%';
-            videoPlaceholder.style.height = '100%';
-            videoPlaceholder.style.display = 'flex';
-            videoPlaceholder.style.alignItems = 'center';
-            videoPlaceholder.style.justifyContent = 'center';
-            videoPlaceholder.style.color = 'white';
-            videoPlaceholder.style.fontSize = '48px';
             videoPlaceholder.textContent = initials;
             
             const userName = document.createElement('div');
@@ -494,7 +461,80 @@
             videoGrid.scrollTop = videoGrid.scrollHeight;
         }
         
-        // Generate a random color for video placeholder
+        // Add participant to the list
+        function addParticipant(name, initials, isLocal = false) {
+            const participant = document.createElement('div');
+            participant.className = 'participant';
+            
+            const statusIndicator = document.createElement('div');
+            statusIndicator.className = 'status-indicator online';
+            
+            const userAvatar = document.createElement('div');
+            userAvatar.className = 'user-avatar';
+            userAvatar.textContent = initials;
+            
+            const nameElement = document.createElement('div');
+            nameElement.textContent = isLocal ? `${name} (You)` : name;
+            
+            participant.appendChild(statusIndicator);
+            participant.appendChild(userAvatar);
+            participant.appendChild(nameElement);
+            
+            participantsContainer.appendChild(participant);
+            
+            // Update participant count
+            participants.push({name, initials, isLocal});
+            participantCount.textContent = participants.length;
+        }
+        
+        // Add system message
+        function addSystemMessage(message) {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message';
+            
+            const contentEl = document.createElement('div');
+            contentEl.className = 'message-content text-center text-muted';
+            contentEl.style.fontSize = '0.9em';
+            contentEl.textContent = message;
+            
+            messageEl.appendChild(contentEl);
+            chatMessages.appendChild(messageEl);
+            
+            // Auto-scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Add chat message
+        function addChatMessage(sender, message, isLocal = false) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${isLocal ? 'message-sent' : 'message-received'}`;
+            
+            const senderEl = document.createElement('div');
+            senderEl.className = 'message-sender';
+            senderEl.textContent = isLocal ? 'You' : sender;
+            
+            const contentEl = document.createElement('div');
+            contentEl.className = 'message-content';
+            contentEl.textContent = message;
+            
+            messageEl.appendChild(senderEl);
+            messageEl.appendChild(contentEl);
+            chatMessages.appendChild(messageEl);
+            
+            // Auto-scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Get initials from name
+        function getInitials(name) {
+            return name.split(' ')
+                .map(word => word[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+        }
+        
+        // Generate a random color
         function getRandomColor() {
             const colors = [
                 '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', 
@@ -516,34 +556,13 @@
             if (!message) return;
             
             // Add message to chat
-            addMessageToChat("You", message, true);
+            addChatMessage(localUserName, message, true);
             
             // Clear input
             messageInput.value = '';
             
             // Simulate responses
             simulateResponses(message);
-        }
-        
-        // Add message to chat
-        function addMessageToChat(sender, message, isSent = false) {
-            const messageEl = document.createElement('div');
-            messageEl.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
-            
-            const senderEl = document.createElement('div');
-            senderEl.className = 'message-sender';
-            senderEl.textContent = sender;
-            
-            const contentEl = document.createElement('div');
-            contentEl.className = 'message-content';
-            contentEl.textContent = message;
-            
-            messageEl.appendChild(senderEl);
-            messageEl.appendChild(contentEl);
-            chatMessages.appendChild(messageEl);
-            
-            // Auto-scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
         
         // Simulate responses from other participants
@@ -557,28 +576,27 @@
             // Only respond to certain messages
             if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi')) {
                 setTimeout(() => {
-                    addMessageToChat("Sarah Johnson", "Hello there!");
+                    addChatMessage("Sarah Johnson", "Hello there!");
                 }, 1000);
                 
                 setTimeout(() => {
-                    addMessageToChat("Mike Rodriguez", "Hi everyone!");
+                    addChatMessage("Mike Rodriguez", "Hi everyone!");
                 }, 2000);
             }
             else if (message.toLowerCase().includes('question')) {
                 setTimeout(() => {
-                    addMessageToChat("Emma Parker", "I can answer that question.");
+                    addChatMessage("Emma Parker", "I can answer that question.");
                 }, 1500);
             }
             else if (Math.random() > 0.5) {
                 const response = responses[Math.floor(Math.random() * responses.length)];
                 setTimeout(() => {
-                    addMessageToChat(response.sender, response.text);
+                    addChatMessage(response.sender, response.text);
                 }, response.delay);
             }
         }
         
         // Toggle video
-        let videoEnabled = true;
         toggleVideoBtn.addEventListener('click', () => {
             videoEnabled = !videoEnabled;
             toggleVideoBtn.innerHTML = videoEnabled ? '<i class="fas fa-video"></i>' : '<i class="fas fa-video-slash"></i>';
@@ -587,7 +605,6 @@
         });
         
         // Toggle audio
-        let audioEnabled = true;
         toggleAudioBtn.addEventListener('click', () => {
             audioEnabled = !audioEnabled;
             toggleAudioBtn.innerHTML = audioEnabled ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
@@ -601,6 +618,10 @@
                 // Redirect to welcome screen
                 welcomeScreen.classList.remove('hidden');
                 videoGrid.innerHTML = '';
+                participantsContainer.innerHTML = '';
+                chatMessages.innerHTML = '';
+                participants = [];
+                participantCount.textContent = '0';
                 roomIdValue.textContent = 'Loading...';
                 
                 // Reset controls
@@ -615,10 +636,10 @@
             }
         });
         
-        // Initialize demo chat messages
+        // Initialize
         window.addEventListener('DOMContentLoaded', () => {
-            // Scroll chat to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // Add system message
+            addSystemMessage("Welcome! Join a room to start video chatting.");
         });
     </script>
 </body>
