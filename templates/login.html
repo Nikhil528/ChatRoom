@@ -615,7 +615,6 @@
         // State
         let currentUser = null;
         let replyingTo = null;
-        const messages = [];
         let isDragging = false;
         let startX = 0;
         let currentSlider = null;
@@ -653,6 +652,7 @@
                 loginPage.style.display = 'none';
                 chatPage.style.display = 'flex';
                 loadUserInfo();
+                loadMessages();
                 return true;
             }
             return false;
@@ -687,7 +687,7 @@
             messageElement.classList.add('message');
             messageElement.classList.add(isSent ? 'sent' : 'received');
             
-            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const timestamp = new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             
             messageElement.innerHTML = `
                 <div class="avatar">${message.avatar || '👤'}</div>
@@ -698,17 +698,24 @@
                 </div>
             `;
             
-            const replyAction = document.createElement('div');
-            replyAction.classList.add('reply-action');
-            replyAction.innerHTML = '<i class="fas fa-reply"></i> Reply';
+            // Only add reply action to received messages
+            if (!isSent) {
+                const replyAction = document.createElement('div');
+                replyAction.classList.add('reply-action');
+                replyAction.innerHTML = '<i class="fas fa-reply"></i> Reply';
+                
+                messageSlider.appendChild(messageElement);
+                messageSlider.appendChild(replyAction);
+                messageContainer.appendChild(messageSlider);
+                
+                // Add event listeners for sliding
+                addSlideEvents(messageSlider, message);
+            } else {
+                messageSlider.appendChild(messageElement);
+                messageContainer.appendChild(messageSlider);
+            }
             
-            messageSlider.appendChild(messageElement);
-            messageSlider.appendChild(replyAction);
-            messageContainer.appendChild(messageSlider);
             chatMessages.appendChild(messageContainer);
-            
-            // Add event listeners for sliding
-            addSlideEvents(messageSlider, message);
             
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -745,9 +752,6 @@
         }
 
         function handleDragStart(e) {
-            // Prevent dragging on sent messages
-            if (e.target.closest('.sent')) return;
-            
             isDragging = true;
             currentSlider = e.currentTarget;
             startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
@@ -791,24 +795,59 @@
         function sendMessage() {
             const text = messageInput.value.trim();
             if (text) {
-                const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                
                 // Create message object
                 const message = {
                     id: `msg-${Date.now()}`,
                     sender: currentUser,
                     name: userName.textContent,
                     avatar: userAvatar.textContent,
-                    text: replyingTo ? `Replying to ${replyingTo.name}: ${text}` : text
+                    text: replyingTo ? `Replying to ${replyingTo.name}: ${text}` : text,
+                    timestamp: Date.now()
                 };
                 
-                // Add to messages
-                messages.push(message);
+                // Save message to localStorage
+                saveMessage(message);
+                
+                // Add to UI as sent
                 addMessageToUI(message, true);
                 
                 // Clear input and reset reply
                 messageInput.value = '';
                 closeReplyPreview();
+            }
+        }
+
+        function saveMessage(message) {
+            // Get existing messages or initialize empty array
+            const messages = JSON.parse(localStorage.getItem('chat_messages')) || [];
+            
+            // Add new message
+            messages.push(message);
+            
+            // Save back to localStorage
+            localStorage.setItem('chat_messages', JSON.stringify(messages));
+        }
+
+        function loadMessages() {
+            // Get messages from localStorage
+            const messages = JSON.parse(localStorage.getItem('chat_messages')) || [];
+            
+            // Sort messages by timestamp
+            messages.sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Clear chat messages
+            chatMessages.innerHTML = '';
+            
+            // Add welcome message if no messages
+            if (messages.length === 0 && welcomeMessage) {
+                chatMessages.appendChild(welcomeMessage);
+                welcomeMessage.style.display = 'block';
+            } else {
+                // Add each message to UI
+                messages.forEach(msg => {
+                    const isSent = msg.sender === currentUser;
+                    addMessageToUI(msg, isSent);
+                });
             }
         }
 
@@ -877,6 +916,7 @@
             loginPage.style.display = 'none';
             chatPage.style.display = 'flex';
             loadUserInfo();
+            loadMessages();
         }
         
         // Prevent zooming
