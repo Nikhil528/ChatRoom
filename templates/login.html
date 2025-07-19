@@ -37,6 +37,7 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: manipulation;
         }
 
         body {
@@ -843,10 +844,14 @@
             } else {
                 // Add each message to UI
                 messages.forEach(msg => {
+                    // Determine if message was sent by current user
                     const isSent = msg.sender === currentUser;
                     addMessageToUI(msg, isSent);
                 });
             }
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
         function closeReplyPreview() {
@@ -916,6 +921,13 @@
             loadUserInfo();
             loadMessages();
         }
+        
+        // Listen for storage changes to update messages in real-time
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'chat_messages') {
+                loadMessages();
+            }
+        });
     </script>
 </body>
 </html>
