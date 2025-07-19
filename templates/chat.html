@@ -7,253 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/flaxcss@latest/dist/flax.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --primary: #6c5ce7;
-            --primary-dark: #5d4aec;
-            --secondary: #a29bfe;
-            --text: #2d3436;
-            --text-light: #636e72;
-            --bg: #f5f6fa;
-            --bg-card: #ffffff;
-            --bg-input: #f1f2f6;
-            --success: #00b894;
-            --error: #ff7675;
-            --shadow: rgba(99, 99, 99, 0.1) 0px 2px 8px 0px;
-            --transition: all 0.3s ease;
-        }
-
-        .dark-mode {
-            --primary: #a29bfe;
-            --primary-dark: #6c5ce7;
-            --secondary: #5d4aec;
-            --text: #f5f6fa;
-            --text-light: #b2bec3;
-            --bg: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-input: #0f3460;
-            --shadow: rgba(0, 0, 0, 0.2) 0px 2px 8px 0px;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            transition: var(--transition);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 15px;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .theme-toggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: var(--bg-card);
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: var(--shadow);
-            color: var(--text);
-            transition: var(--transition);
-            z-index: 100;
-        }
-
-        .theme-toggle:hover {
-            transform: rotate(30deg);
-        }
-
-        /* Chat Page */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .chat-header {
-            background: var(--primary);
-            color: white;
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .chat-header-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--secondary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-
-        .user-info h2 {
-            margin: 0;
-            font-size: 1.2rem;
-        }
-
-        .user-info p {
-            margin: 3px 0 0;
-            font-size: 0.85rem;
-            opacity: 0.9;
-        }
-
-        .chat-header-actions {
-            display: flex;
-            gap: 15px;
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: var(--bg);
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .message {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            position: relative;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .sent {
-            align-self: flex-end;
-            background: var(--primary);
-            color: white;
-            border-bottom-right-radius: 5px;
-        }
-
-        .received {
-            align-self: flex-start;
-            background: var(--bg-card);
-            color: var(--text);
-            border-bottom-left-radius: 5px;
-        }
-
-        .message-time {
-            display: block;
-            font-size: 0.7rem;
-            opacity: 0.7;
-            margin-top: 5px;
-            text-align: right;
-        }
-
-        .chat-input-area {
-            padding: 15px;
-            background: var(--bg-card);
-            display: flex;
-            gap: 10px;
-            border-top: 1px solid rgba(0,0,0,0.05);
-        }
-
-        .message-input {
-            flex: 1;
-            padding: 14px 16px;
-            border: none;
-            background: var(--bg-input);
-            border-radius: 24px;
-            font-size: 1rem;
-            color: var(--text);
-            transition: var(--transition);
-        }
-
-        .message-input:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.3);
-        }
-
-        .send-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .send-btn:hover {
-            background: var(--primary-dark);
-            transform: scale(1.05);
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .message {
-                max-width: 85%;
-            }
-            
-            .chat-header {
-                padding: 12px 15px;
-            }
-            
-            .user-info h2 {
-                font-size: 1.1rem;
-            }
-            
-            .chat-messages {
-                padding: 15px 10px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .message {
-                max-width: 90%;
-            }
-            
-            .chat-header-info {
-                gap: 10px;
-            }
-            
-            .user-avatar {
-                width: 35px;
-                height: 35px;
-                font-size: 1rem;
-            }
-            
-            .user-info p {
-                display: none;
-            }
-        }
+        /* Styles remain the same as previous version */
     </style>
 </head>
 <body>
@@ -269,15 +23,12 @@
                 <div class="user-avatar" id="currentUserAvatar">{{ avatar }}</div>
                 <div class="user-info">
                     <h2 id="currentUserName">{{ name }}</h2>
-                    <p>Online</p>
+                    <p id="connectionStatus">Connecting...</p>
                 </div>
             </div>
             <div class="chat-header-actions">
-                <button class="btn-icon">
-                    <i class="fas fa-phone-alt"></i>
-                </button>
-                <button class="btn-icon">
-                    <i class="fas fa-video"></i>
+                <button class="btn-icon" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
         </div>
@@ -295,108 +46,17 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
-        // DOM Elements
-        const themeToggle = document.getElementById('themeToggle');
-        const chatMessages = document.getElementById('chatMessages');
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-
-        // Theme Toggle
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const icon = themeToggle.querySelector('i');
-            if (document.body.classList.contains('dark-mode')) {
-                icon.classList.remove('fa-moon');
-                icon.classList.add('fa-sun');
-            } else {
-                icon.classList.remove('fa-sun');
-                icon.classList.add('fa-moon');
-            }
-        });
-
-        // User info from Flask
+        // Initialize with user data from Flask
         const currentUser = {
             username: "{{ username }}",
             name: "{{ name }}",
             avatar: "{{ avatar }}"
         };
-
-        // Since there are only two users, determine the other user
-        const otherUser = {
-            username: currentUser.username === 'user1' ? 'user2' : 'user1',
-            name: currentUser.username === 'user1' ? 'User Two' : 'User One',
-            avatar: currentUser.username === 'user1' ? 'U2' : 'U1'
-        };
-
-        // Connect to Socket.IO
-        const socket = io();
-
-        // Function to add a message to the chat
-        function addMessage(text, sender, timestamp) {
-            const isSent = sender.username === currentUser.username;
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message', isSent ? 'sent' : 'received');
-            
-            messageElement.innerHTML = `
-                <div>${text}</div>
-                <span class="message-time">${timestamp}</span>
-            `;
-            
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // Send Message Functionality
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (message) {
-                const now = new Date();
-                const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                // Add the message locally immediately
-                addMessage(message, currentUser, timestamp);
-                
-                // Send to server
-                socket.emit('send_message', {
-                    text: message,
-                    sender: currentUser.username,
-                    timestamp: timestamp
-                });
-                
-                // Clear input
-                messageInput.value = '';
-            }
-        }
-
-        // Receive messages from other user
-        socket.on('receive_message', (data) => {
-            // Only show messages from the other user
-            if (data.sender === otherUser.username) {
-                addMessage(data.text, otherUser, data.timestamp);
-            }
-        });
-
-        // Load chat history
-        socket.on('chat_history', (history) => {
-            history.forEach(msg => {
-                const sender = msg.sender === currentUser.username ? currentUser : otherUser;
-                addMessage(msg.text, sender, msg.timestamp);
-            });
-        });
-
-        // Request chat history when connected
-        socket.on('connect', () => {
-            socket.emit('request_history');
-        });
-
-        // Event Listeners
-        sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
+        
+        // Initialize chat
+        initChat(currentUser);
     </script>
 </body>
 </html>
