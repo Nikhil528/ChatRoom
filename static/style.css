@@ -67,7 +67,6 @@ body {
     color: white;
 }
 
-/* Login Page Styles */
 .login-container {
     display: flex;
     justify-content: center;
@@ -142,7 +141,6 @@ body {
     font-size: 14px;
 }
 
-/* Chat Page Styles */
 .chat-container {
     display: flex;
     flex-direction: column;
@@ -223,7 +221,6 @@ body {
     color: var(--text-color);
 }
 
-/* Responsive Styles */
 @media (max-width: 600px) {
     .login-box {
         padding: 20px;
