@@ -61,6 +61,10 @@ def send_message():
         'timestamp': datetime.now().strftime('%H:%M:%S')
     })
     
+    # Keep only the last 100 messages
+    if len(messages) > 100:
+        messages.pop(0)
+    
     return jsonify({'status': 'success'})
 
 @app.route('/get_messages')
@@ -68,7 +72,7 @@ def get_messages():
     if 'username' not in session:
         return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
     
-    return jsonify({'messages': messages})
+    return jsonify({'status': 'success', 'messages': messages})
 
 if __name__ == '__main__':
     app.run(debug=True)
