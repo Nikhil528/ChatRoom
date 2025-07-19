@@ -37,7 +37,7 @@ function setupChat() {
     loadMessages();
     
     // Set up periodic message refresh
-    setInterval(loadMessages, 2000);
+    const messageInterval = setInterval(loadMessages, 2000);
     
     // Send message on button click
     sendButton.addEventListener('click', sendMessage);
@@ -51,11 +51,19 @@ function setupChat() {
     
     function loadMessages() {
         fetch('/get_messages')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
                     displayMessages(data.messages);
                 }
+            })
+            .catch(error => {
+                console.error('Error loading messages:', error);
             });
     }
     
@@ -98,13 +106,26 @@ function setupChat() {
                 },
                 body: JSON.stringify({ message: message })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
                     messageInput.value = '';
                     loadMessages();
                 }
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
             });
         }
     }
+    
+    // Clean up interval when leaving the page
+    window.addEventListener('beforeunload', function() {
+        clearInterval(messageInterval);
+    });
 }
