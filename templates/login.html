@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flax Chat</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -37,7 +37,6 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            touch-action: manipulation;
         }
 
         body {
@@ -512,7 +511,7 @@
     </style>
 </head>
 <body>
-    <!-- Login Page Template -->
+    <!-- Login Page -->
     <div id="login-page" class="login-container">
         <div class="login-card">
             <div class="login-header">
@@ -544,7 +543,7 @@
         </div>
     </div>
 
-    <!-- Chat Page Template -->
+    <!-- Chat Page (initially hidden) -->
     <div id="chat-page" class="chat-container" style="display: none;">
         <div class="chat-header">
             <div class="header-left">
@@ -579,7 +578,6 @@
             <div class="welcome-message">
                 Start your conversation with a message
             </div>
-            <!-- Messages will be loaded here -->
         </div>
         <div class="chat-input-container">
             <div class="chat-input">
@@ -918,11 +916,6 @@
             loadUserInfo();
             loadMessages();
         }
-        
-        // Prevent zooming
-        document.addEventListener('gesturestart', function(e) {
-            e.preventDefault();
-        });
     </script>
 </body>
 </html>
