@@ -1,106 +1,74 @@
-# app.py
-from flask import Flask, render_template, request, redirect, url_for, session
-from flask_socketio import SocketIO, join_room, leave_room, emit
+from flask import Flask, render_template, request, redirect, session, jsonify
 from datetime import datetime
-import os
-import secrets
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(16)
-socketio = SocketIO(app)
+app.secret_key = 'your_secret_key_here'
 
-# In-memory database for users and messages (for demonstration)
-users = {
-    "user1": {"password": "user1", "name": "User One"},
-    "user2": {"password": "user2", "name": "User Two"}
+# Hardcoded users for simplicity
+USERS = {
+    'user1': 'password1',
+    'user2': 'password2'
 }
 
-# Store messages in memory (in production, use a database)
+# Store messages in memory (for demo purposes)
 messages = []
 
 @app.route('/')
 def index():
-    # If user is logged in, redirect to chat
-    if 'username' in session:
-        return redirect(url_for('chat'))
-    return redirect(url_for('login'))
+    return redirect('/login')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username')
+        password = request.form.get('password')
         
-        # Check credentials
-        if username in users and users[username]['password'] == password:
+        if username in USERS and USERS[username] == password:
             session['username'] = username
-            return redirect(url_for('chat'))
-        return render_template('login.html', error="Invalid credentials")
+            return redirect('/chat')
+        else:
+            return render_template('login.html', error="Invalid credentials")
     
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
     session.pop('username', None)
-    return redirect(url_for('login'))
+    return redirect('/login')
 
 @app.route('/chat')
 def chat():
     if 'username' not in session:
-        return redirect(url_for('login'))
+        return redirect('/login')
     
-    # Only allow user1 and user2
-    if session['username'] not in ['user1', 'user2']:
-        return redirect(url_for('logout'))
-    
-    return render_template('chat.html', 
-                           username=session['username'],
-                           user_info=users[session['username']],
-                           messages=messages)
+    return render_template('chat.html', username=session['username'])
 
-@socketio.on('connect')
-def handle_connect():
-    if 'username' in session:
-        # Both users join the same room
-        join_room('user1_user2_room')
-        emit('user_status', {
-            'user': session['username'],
-            'status': 'online',
-            'timestamp': datetime.now().strftime("%H:%M:%S")
-        }, room='user1_user2_room')
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    if 'username' in session:
-        leave_room('user1_user2_room')
-        emit('user_status', {
-            'user': session['username'],
-            'status': 'offline',
-            'timestamp': datetime.now().strftime("%H:%M:%S")
-        }, room='user1_user2_room')
-
-@socketio.on('send_message')
-def handle_send_message(data):
+@app.route('/send_message', methods=['POST'])
+def send_message():
     if 'username' not in session:
-        return
+        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
     
-    username = session['username']
-    message = data['message']
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    data = request.json
+    message = data.get('message')
     
-    # Create message object
-    message_obj = {
-        'sender': username,
-        'text': message,
-        'timestamp': timestamp,
-        'sender_name': users[username]['name']
-    }
+    if not message:
+        return jsonify({'status': 'error', 'message': 'Empty message'}), 400
     
-    # Store message
-    messages.append(message_obj)
+    # Store message with timestamp
+    messages.append({
+        'sender': session['username'],
+        'message': message,
+        'timestamp': datetime.now().strftime('%H:%M:%S')
+    })
     
-    # Broadcast to room
-    emit('receive_message', message_obj, room='user1_user2_room')
+    return jsonify({'status': 'success'})
+
+@app.route('/get_messages')
+def get_messages():
+    if 'username' not in session:
+        return jsonify({'status': 'error', 'message': 'Not logged in'}), 401
+    
+    return jsonify({'messages': messages})
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True)
