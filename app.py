@@ -7,8 +7,8 @@ app.secret_key = 'your-secret-key-123'  # Change this for production
 
 # Mock database (replace with real database in production)
 users = {
-    'betu1': generate_password_hash('betu'),
-    'betu2': generate_password_hash('betu2')
+    'user1': generate_password_hash('betu'),
+    'user2': generate_password_hash('betu2')
 }
 
 messages = []
